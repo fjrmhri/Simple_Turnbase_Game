@@ -1090,6 +1090,15 @@
               document.getElementById("startScreen").style.display = "none";
               document.getElementById("battleField").style.display = "block";
               this.state = "playing";
+              this.log(
+                "Tip: Armor Break lowers the dragon's DEF—pile on physical strikes while it's weakened."
+              );
+              this.log(
+                "Tip: Burning ticks after actions. Keep the flames alive for sustained damage."
+              );
+              this.log(
+                "Tip: Guard and Shield Wall blunt heavy blows; use them before big attacks."
+              );
               this.startTurn();
             });
 
@@ -1731,13 +1740,20 @@
               `${h.id}MpText`
             ).textContent = `${h.mp}/${h.maxMp}`;
             const status = document.getElementById(`${h.id}Status`);
-            const labels = [];
-            if (h.status.atkUp) labels.push("ATK↑");
-            if (h.status.magUp) labels.push("MAG↑");
-            if (h.status.guard) labels.push("Guard");
-            if (h.status.guardTeam) labels.push("Shielded");
-            if (h.status.atkDown) labels.push("ATK↓");
-            if (h.status.defDown) labels.push("DEF↓");
+            const format = (label, effect) => {
+              if (!effect) return null;
+              const duration =
+                typeof effect.duration === "number" ? ` (${effect.duration})` : "";
+              return `${label}${duration}`;
+            };
+            const labels = [
+              format("ATK↑", h.status.atkUp),
+              format("MAG↑", h.status.magUp),
+              format("Guard", h.status.guard),
+              format("Shielded", h.status.guardTeam),
+              format("ATK↓", h.status.atkDown),
+              format("DEF↓", h.status.defDown),
+            ].filter(Boolean);
             status.textContent = labels.join(" · ");
             status.style.display = labels.length ? "inline-block" : "none";
           });
