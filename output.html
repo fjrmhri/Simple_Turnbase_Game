@@ -460,6 +460,7 @@
         display: flex;
         flex-direction: column;
         gap: 10px;
+        position: relative;
       }
 
       .skill-buttons {
@@ -507,6 +508,12 @@
         padding: 10px 12px;
         color: var(--text);
         box-shadow: var(--shadow);
+        position: absolute;
+        display: none;
+        pointer-events: none;
+        transform: translate(-50%, calc(-100% - 8px));
+        max-width: 240px;
+        z-index: 5;
       }
 
       .skill-info h4 {
@@ -984,6 +991,7 @@
           this.logEl = document.getElementById("logBody");
           this.heroRow = document.getElementById("heroRow");
           this.skillButtons = document.getElementById("skillButtons");
+          this.skillBar = document.getElementById("skillBar");
           this.skillInfo = document.getElementById("skillInfo");
           this.waitingText = document.getElementById("waitingText");
           this.turnNodes = document.getElementById("turnNodes");
@@ -1140,14 +1148,19 @@
             btn.disabled = hero.mp < skill.cost || hero.hp <= 0;
             btn.addEventListener("click", () => {
               this.pendingSkill = { hero, skill };
-              this.showSkillInfo(skill);
               this.prepareTargeting(hero, skill);
+            });
+            btn.addEventListener("mouseenter", () => {
+              this.showSkillInfo(skill, btn);
+            });
+            btn.addEventListener("mouseleave", () => {
+              this.hideSkillInfo();
             });
             this.skillButtons.appendChild(btn);
           });
         }
 
-        showSkillInfo(skill) {
+        showSkillInfo(skill, anchor) {
           this.skillInfo.style.display = "block";
           const targetLabel =
             skill.target === "enemy"
@@ -1164,6 +1177,16 @@
             <div style="color:var(--muted);margin-bottom:6px;">${targetLabel} · MP ${skill.cost}</div>
             <p>${skill.description}</p>
           `;
+          const containerRect = this.skillBar.getBoundingClientRect();
+          const buttonRect = anchor.getBoundingClientRect();
+          const left = buttonRect.left - containerRect.left + buttonRect.width / 2;
+          const top = buttonRect.top - containerRect.top;
+          this.skillInfo.style.left = `${left}px`;
+          this.skillInfo.style.top = `${top}px`;
+        }
+
+        hideSkillInfo() {
+          this.skillInfo.style.display = "none";
         }
 
         prepareTargeting(hero, skill) {
