@@ -591,7 +591,8 @@
       }
 
       .target-highlight {
-        box-shadow: 0 0 0 2px var(--secondary), 0 14px 30px rgba(116, 240, 237, 0.25);
+        box-shadow: 0 0 0 2px var(--secondary),
+          0 14px 30px rgba(116, 240, 237, 0.25);
         transform: translateY(-2px);
       }
 
@@ -1219,7 +1220,8 @@
           `;
           const containerRect = this.skillBar.getBoundingClientRect();
           const buttonRect = anchor.getBoundingClientRect();
-          const left = buttonRect.left - containerRect.left + buttonRect.width / 2;
+          const left =
+            buttonRect.left - containerRect.left + buttonRect.width / 2;
           const top = buttonRect.top - containerRect.top;
           this.skillInfo.style.left = `${left}px`;
           this.skillInfo.style.top = `${top}px`;
@@ -1316,7 +1318,12 @@
           const attackStat = isMagic ? source.mag : source.atk;
           const defense = target.id === "boss" ? this.boss.def : target.def;
           let base = Math.max(0, attackStat - defense * 0.5);
-          const power = powerOverride ?? skill.power || 1;
+          const power =
+            typeof powerOverride === "number"
+              ? powerOverride
+              : typeof skill.power === "number"
+              ? skill.power
+              : 1;
           let buffMulti = 1;
           if (source.status.atkUp && !isMagic)
             buffMulti += source.status.atkUp.amount;
@@ -1325,7 +1332,8 @@
           if (target.status.dmgDown) buffMulti -= target.status.dmgDown.amount;
           const guardCut = target.status.guard?.amount || 0;
           const guardTeam = target.status.guardTeam?.amount || 0;
-          const enraged = this.boss.hp <= this.boss.maxHp * 0.5 || this.bossEnraged;
+          const enraged =
+            this.boss.hp <= this.boss.maxHp * 0.5 || this.bossEnraged;
           let damage = Math.max(
             8,
             Math.round(base * power * buffMulti * (1 - guardCut - guardTeam))
@@ -1341,7 +1349,9 @@
             target.hp <= target.maxHp * 0.5
           ) {
             this.bossEnraged = true;
-            this.log(`${this.boss.name} becomes enraged! Its attacks intensify.`);
+            this.log(
+              `${this.boss.name} becomes enraged! Its attacks intensify.`
+            );
           }
           if (skill.debuff) {
             target.status = target.status || {};
@@ -1442,13 +1452,18 @@
             this.log(`Burning embers scorch the dragon for ${dot.amount}.`);
             if (!this.bossEnraged && this.boss.hp <= this.boss.maxHp * 0.5) {
               this.bossEnraged = true;
-              this.log(`${this.boss.name} becomes enraged! Its attacks intensify.`);
+              this.log(
+                `${this.boss.name} becomes enraged! Its attacks intensify.`
+              );
             }
           }
         }
 
         weightedChoice(skills) {
-          const total = skills.reduce((sum, skill) => sum + (skill.weight || 1), 0);
+          const total = skills.reduce(
+            (sum, skill) => sum + (skill.weight || 1),
+            0
+          );
           let roll = Math.random() * total;
           for (const skill of skills) {
             roll -= skill.weight || 1;
