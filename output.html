@@ -303,6 +303,23 @@
         background: var(--hp);
       }
 
+      .hp-fill.critical {
+        animation: pulse 1s infinite;
+        box-shadow: 0 0 6px rgba(255, 61, 61, 0.55);
+      }
+
+      @keyframes pulse {
+        0% {
+          opacity: 0.9;
+        }
+        50% {
+          opacity: 0.4;
+        }
+        100% {
+          opacity: 0.9;
+        }
+      }
+
       .mp-fill {
         background: var(--mp);
       }
@@ -430,7 +447,7 @@
 
       .stat-grid {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(4, 1fr);
         gap: 4px;
         margin-top: 6px;
       }
@@ -765,6 +782,7 @@
           atk: 34,
           def: 14,
           mag: 6,
+          spd: 12,
           skills: [
             {
               id: "basicSlash",
@@ -815,6 +833,7 @@
           atk: 10,
           def: 10,
           mag: 40,
+          spd: 14,
           skills: [
             {
               id: "arcaneBolt",
@@ -865,6 +884,7 @@
           atk: 12,
           def: 16,
           mag: 24,
+          spd: 10,
           skills: [
             {
               id: "singleHeal",
@@ -872,7 +892,7 @@
               cost: 14,
               target: "ally",
               type: "heal",
-              power: 0.45,
+              power: 0.8,
               description: "Restore a large amount of HP to one ally.",
             },
             {
@@ -881,7 +901,7 @@
               cost: 18,
               target: "allies",
               type: "heal",
-              power: 0.25,
+              power: 0.55,
               description: "Restore moderate HP to all allies.",
             },
             {
@@ -912,6 +932,7 @@
           atk: 18,
           def: 28,
           mag: 8,
+          spd: 8,
           skills: [
             {
               id: "bash",
@@ -964,6 +985,7 @@
         atk: 42,
         def: 24,
         mag: 36,
+        spd: 11,
         status: {},
         skills: [
           {
@@ -1016,7 +1038,8 @@
             mp: bossConfig.maxMp,
           };
           this.bossEnraged = false;
-          this.turnOrder = ["soldier", "mage", "healer", "tank", "boss"];
+          this.bossCharging = null;
+          this.turnOrder = [];
           this.turnIndex = 0;
           this.state = "menu";
           this.pendingSkill = null;
@@ -1043,6 +1066,7 @@
               document.getElementById("startScreen").style.display = "none";
               document.getElementById("battleField").style.display = "block";
               this.state = "playing";
+              this.rebuildTurnOrder();
               this.startTurn();
             });
 
@@ -1073,6 +1097,8 @@
           this.pendingSkill = null;
           this.targetingActive = false;
           this.bossEnraged = false;
+          this.bossCharging = null;
+          this.rebuildTurnOrder();
           this.closeTargetSelect();
           document.getElementById("gameOver").style.display = "none";
           this.logEl.innerHTML = "";
@@ -1108,6 +1134,7 @@
                 <div class="stat-chip">ATK<strong>${hero.atk}</strong></div>
                 <div class="stat-chip">DEF<strong>${hero.def}</strong></div>
                 <div class="stat-chip">MAG<strong>${hero.mag}</strong></div>
+                <div class="stat-chip">SPD<strong>${hero.spd || 10}</strong></div>
               </div>
             `;
             this.heroRow.appendChild(card);
@@ -1129,10 +1156,25 @@
           return this.heroes.find((h) => h.id === id);
         }
 
+        rebuildTurnOrder() {
+          const livingUnits = [
+            ...this.heroes.filter((h) => h.hp > 0),
+            this.boss.hp > 0 ? this.boss : null,
+          ].filter(Boolean);
+          livingUnits.sort((a, b) => (b.spd || 10) - (a.spd || 10));
+          this.turnOrder = livingUnits.map((u) => u.id);
+          this.turnIndex = 0;
+        }
+
         startTurn() {
           if (this.state !== "playing") return;
+          if (!this.turnOrder.length) this.rebuildTurnOrder();
           this.applyDurations();
           const current = this.turnOrder[this.turnIndex];
+          if (!current) {
+            this.checkEnd();
+            return;
+          }
           this.highlightTurn();
           if (current === "boss") {
             this.waitingText.textContent = "Dragon is acting...";
@@ -1297,27 +1339,43 @@
         applyDurations() {
           const decay = (status) => {
             Object.keys(status).forEach((k) => {
+              if (k === "dot") return;
               if (status[k] && typeof status[k].duration === "number") {
                 status[k].duration -= 1;
                 if (status[k].duration <= 0) delete status[k];
               }
             });
           };
-          this.heroes.forEach((h) => decay(h.status));
-          decay(this.boss.status || {});
+          this.heroes.forEach((h) => decay(h.status || {}));
+          if (this.boss.status) decay(this.boss.status);
         }
 
         computeDefense(target) {
+          const baseDef = target.id === "boss" ? this.boss.def : target.def;
           let modifier = 1;
-          if (target.status.defDown) modifier += target.status.defDown.amount;
-          return Math.max(0.1, (target.def || this.boss.def) * modifier);
+
+          if (target.status?.defDown) {
+            modifier -= target.status.defDown.amount;
+          }
+
+          return Math.max(1, Math.round(baseDef * modifier));
+        }
+
+        triggerEnrage() {
+          if (this.bossEnraged) return;
+          this.bossEnraged = true;
+          this.log(
+            `${this.boss.name} becomes enraged! Its attack patterns shift as power surges.`
+          );
         }
 
         applyDamage(source, target, skill, powerOverride = null) {
           const isMagic = skill.type === "magic";
           const attackStat = isMagic ? source.mag : source.atk;
-          const defense = target.id === "boss" ? this.boss.def : target.def;
+          const defense = this.computeDefense(target);
           let base = Math.max(0, attackStat - defense * 0.5);
+          const sourceStatus = source.status || {};
+          const targetStatus = target.status || {};
           const power =
             typeof powerOverride === "number"
               ? powerOverride
@@ -1325,21 +1383,30 @@
               ? skill.power
               : 1;
           let buffMulti = 1;
-          if (source.status.atkUp && !isMagic)
-            buffMulti += source.status.atkUp.amount;
-          if (source.status.magUp && isMagic)
-            buffMulti += source.status.magUp.amount;
-          if (target.status.dmgDown) buffMulti -= target.status.dmgDown.amount;
-          const guardCut = target.status.guard?.amount || 0;
-          const guardTeam = target.status.guardTeam?.amount || 0;
-          const enraged =
-            this.boss.hp <= this.boss.maxHp * 0.5 || this.bossEnraged;
+          if (sourceStatus.atkUp && !isMagic)
+            buffMulti += sourceStatus.atkUp.amount;
+          if (sourceStatus.magUp && isMagic)
+            buffMulti += sourceStatus.magUp.amount;
+          if (targetStatus.dmgDown) buffMulti -= targetStatus.dmgDown.amount;
+          const guardCut = targetStatus.guard?.amount || 0;
+          const guardTeam = targetStatus.guardTeam?.amount || 0;
+          let synergyMulti = 1;
+          if (!isMagic && targetStatus?.defDown) synergyMulti += 0.15;
+          if (source.id === "tank" && this.boss.status?.dot && target.id === "boss")
+            synergyMulti += 0.1;
+          const enraged = this.boss.hp <= this.boss.maxHp * 0.5 || this.bossEnraged;
           let damage = Math.max(
             8,
-            Math.round(base * power * buffMulti * (1 - guardCut - guardTeam))
+            Math.round(
+              base *
+                power *
+                buffMulti *
+                synergyMulti *
+                (1 - guardCut - guardTeam)
+            )
           );
           if (source.id === "boss" && enraged) {
-            damage = Math.max(8, Math.round(damage * 2));
+            damage = Math.max(8, Math.round(damage * 1.8));
             this.bossEnraged = true;
           }
           target.hp = Math.max(0, target.hp - damage);
@@ -1348,10 +1415,7 @@
             !this.bossEnraged &&
             target.hp <= target.maxHp * 0.5
           ) {
-            this.bossEnraged = true;
-            this.log(
-              `${this.boss.name} becomes enraged! Its attacks intensify.`
-            );
+            this.triggerEnrage();
           }
           if (skill.debuff) {
             target.status = target.status || {};
@@ -1375,10 +1439,24 @@
         }
 
         applyHeal(source, target, skill) {
-          const power = skill.power || 0.3;
-          const amount = Math.round(source.mag * 2 * power);
+          const power = typeof skill.power === "number" ? skill.power : 0.6;
+          const base = target.maxHp * 0.4;
+          const scaling = source.mag * 0.2;
+          const amount = Math.round(base * power + scaling);
           target.hp = Math.min(target.maxHp, target.hp + amount);
           return amount;
+        }
+
+        applyEndOfTurnRegen() {
+          this.heroes.forEach((h) => {
+            if (h.hp > 0) {
+              const regen = 3;
+              h.mp = Math.min(h.maxMp, h.mp + regen);
+            }
+          });
+          if (this.boss.hp > 0) {
+            this.boss.mp = Math.min(this.boss.maxMp, this.boss.mp + 4);
+          }
         }
 
         executeSkill(user, skill, target = null) {
@@ -1446,17 +1524,24 @@
         }
 
         resolveDot() {
-          if (this.boss.status.dot) {
-            const dot = this.boss.status.dot;
-            this.boss.hp = Math.max(0, this.boss.hp - dot.amount);
-            this.log(`Burning embers scorch the dragon for ${dot.amount}.`);
-            if (!this.bossEnraged && this.boss.hp <= this.boss.maxHp * 0.5) {
-              this.bossEnraged = true;
-              this.log(
-                `${this.boss.name} becomes enraged! Its attacks intensify.`
-              );
+          const tickDot = (unit, isBoss = false) => {
+            if (!unit.status?.dot) return;
+            const dot = unit.status.dot;
+            unit.hp = Math.max(0, unit.hp - dot.amount);
+            this.log(
+              isBoss
+                ? `Burning embers scorch the dragon for ${dot.amount}.`
+                : `${unit.name} suffers ${dot.amount} burning damage.`
+            );
+            dot.duration -= 1;
+            if (dot.duration <= 0) delete unit.status.dot;
+            if (isBoss && !this.bossEnraged && unit.hp <= unit.maxHp * 0.5) {
+              this.triggerEnrage();
             }
-          }
+          };
+
+          tickDot(this.boss, true);
+          this.heroes.forEach((h) => tickDot(h));
         }
 
         weightedChoice(skills) {
@@ -1470,6 +1555,21 @@
             if (roll <= 0) return skill;
           }
           return skills[0];
+        }
+
+        getBossSkillPool(enraged) {
+          const adjustWeight = (skill) => {
+            if (!enraged) return skill.weight || 1;
+            if (skill.id === "apexPredation") return 3;
+            if (skill.id === "searingRoar") return 4;
+            if (skill.id === "fieryOnslaught") return 4;
+            if (skill.id === "crushingBlow") return 2;
+            return skill.weight || 1;
+          };
+          return this.boss.skills.map((skill) => ({
+            ...skill,
+            weight: adjustWeight(skill),
+          }));
         }
 
         pickPriorityTarget(aliveHeroes) {
@@ -1504,69 +1604,104 @@
           ) {
             delete boss.status.taunt;
           }
+          const enraged = this.bossEnraged || boss.hp <= boss.maxHp * 0.5;
+          if (enraged) this.triggerEnrage();
 
-          const affordable = boss.skills.filter(
+          const skillsPool = this.getBossSkillPool(enraged);
+          let affordable = skillsPool.filter(
             (s) => s.cost === 0 || s.cost <= boss.mp
           );
-          const pool = affordable.length ? affordable : [boss.skills[0]];
-          const choice = this.weightedChoice(pool);
+          if (!affordable.length) affordable = skillsPool.filter((s) => s.cost === 0);
+          if (!affordable.length) affordable = [skillsPool[0]];
 
-          boss.mp = Math.max(0, boss.mp - choice.cost);
-
-          if (
-            boss.status.taunt &&
-            this.getHero(boss.status.taunt.target)?.hp > 0
-          ) {
-            this.log(
-              `Dragon is provoked and eyes ${
-                this.getHero(boss.status.taunt.target).name
-              }!`
-            );
-          }
-
-          if (choice.target === "all-enemies") {
-            this.heroes.forEach((hero) => {
-              if (hero.hp > 0) {
-                const dmg = this.applyDamage(boss, hero, choice);
-                this.log(`Dragon scorched ${hero.name} for ${dmg} damage.`);
-              }
-            });
-          } else if (choice.id === "fieryOnslaught") {
-            const targetHero = this.pickPriorityTarget(aliveHeroes);
-            const mainDmg = this.applyDamage(
-              boss,
-              targetHero,
-              choice,
-              choice.power
-            );
-            this.log(
-              `Dragon unleashed a fiery blast on ${targetHero.name} for ${mainDmg} damage.`
-            );
-            aliveHeroes
-              .filter((h) => h.id !== targetHero.id)
-              .forEach((hero) => {
-                const splashDmg = this.applyDamage(
-                  boss,
-                  hero,
-                  choice,
-                  choice.splashPower
-                );
-                this.log(
-                  `Splashing flames seared ${hero.name} for ${splashDmg} damage.`
-                );
-              });
-          } else {
-            const targetHero = this.pickPriorityTarget(aliveHeroes);
-            const dmg = this.applyDamage(boss, targetHero, choice);
-            if (choice.id === "apexPredation") {
+          const castSkill = (choice) => {
+            if (
+              boss.status.taunt &&
+              this.getHero(boss.status.taunt.target)?.hp > 0
+            ) {
               this.log(
-                `Dragon used a devastating attack on ${targetHero.name} for ${dmg} damage.`
-              );
-            } else {
-              this.log(
-                `Dragon attacked ${targetHero.name} with a basic strike for ${dmg} damage.`
+                `Dragon is provoked and eyes ${
+                  this.getHero(boss.status.taunt.target).name
+                }!`
               );
             }
+
+            if (choice.target === "all-enemies") {
+              this.heroes.forEach((hero) => {
+                if (hero.hp > 0) {
+                  const dmg = this.applyDamage(boss, hero, choice);
+                  this.log(`Dragon scorched ${hero.name} for ${dmg} damage.`);
+                }
+              });
+            } else if (choice.id === "fieryOnslaught") {
+              const targetHero = this.pickPriorityTarget(aliveHeroes);
+              const mainDmg = this.applyDamage(
+                boss,
+                targetHero,
+                choice,
+                choice.power
+              );
+              this.log(
+                `Dragon unleashed a fiery blast on ${targetHero.name} for ${mainDmg} damage.`
+              );
+              aliveHeroes
+                .filter((h) => h.id !== targetHero.id)
+                .forEach((hero) => {
+                  const splashDmg = this.applyDamage(
+                    boss,
+                    hero,
+                    choice,
+                    choice.splashPower
+                  );
+                  this.log(
+                    `Splashing flames seared ${hero.name} for ${splashDmg} damage.`
+                  );
+                });
+            } else {
+              const targetHero = this.pickPriorityTarget(aliveHeroes);
+              const dmg = this.applyDamage(boss, targetHero, choice);
+              if (choice.id === "apexPredation") {
+                this.log(
+                  `Dragon used a devastating attack on ${targetHero.name} for ${dmg} damage.`
+                );
+              } else {
+                this.log(
+                  `Dragon attacked ${targetHero.name} with a basic strike for ${dmg} damage.`
+                );
+              }
+            }
+          };
+
+          if (this.bossCharging) {
+            const choice = this.bossCharging;
+            if (choice.cost > boss.mp && choice.cost !== 0) {
+              this.log("The dragon's gathered flames sputter out before erupting.");
+            } else {
+              boss.mp = Math.max(0, boss.mp - choice.cost);
+              this.log("The dragon releases its gathered power in a blazing assault!");
+              castSkill(choice);
+            }
+            this.bossCharging = null;
+          } else {
+            const choice = this.weightedChoice(affordable);
+            const canCharge =
+              enraged &&
+              choice.id === "searingRoar" &&
+              (choice.cost === 0 || choice.cost <= boss.mp) &&
+              Math.random() < 0.5;
+
+            if (canCharge) {
+              this.bossCharging = choice;
+              this.log("The dragon inhales sharply, flames gathering in its throat!");
+              this.resolveDot();
+              this.updateUI();
+              this.checkEnd();
+              if (this.state === "playing") this.advanceTurn();
+              return;
+            }
+
+            boss.mp = Math.max(0, boss.mp - choice.cost);
+            castSkill(choice);
           }
 
           this.resolveDot();
@@ -1576,14 +1711,37 @@
         }
 
         advanceTurn() {
-          this.turnIndex = (this.turnIndex + 1) % this.turnOrder.length;
+          const nextIndex = this.turnIndex + 1;
+          this.applyEndOfTurnRegen();
+          if (nextIndex >= this.turnOrder.length) {
+            this.rebuildTurnOrder();
+          } else {
+            this.turnIndex = nextIndex;
+          }
           setTimeout(() => this.startTurn(), 600);
         }
 
         updateUI() {
+          const formatStatus = (status = {}) => {
+            const labels = [];
+            if (status.atkUp) labels.push(`ATK↑ (${status.atkUp.duration})`);
+            if (status.magUp) labels.push(`MAG↑ (${status.magUp.duration})`);
+            if (status.guard) labels.push(`Guard (${status.guard.duration})`);
+            if (status.guardTeam)
+              labels.push(`Shielded (${status.guardTeam.duration})`);
+            if (status.atkDown) labels.push(`ATK↓ (${status.atkDown.duration})`);
+            if (status.defDown) labels.push(`DEF↓ (${status.defDown.duration})`);
+            if (status.dmgDown) labels.push(`DMG↓ (${status.dmgDown.duration})`);
+            if (status.dot) labels.push(`Burn (${status.dot.duration})`);
+            if (status.taunt) labels.push(`Taunting (${status.taunt.duration})`);
+            return labels;
+          };
+
           const bossHpPct = (this.boss.hp / this.boss.maxHp) * 100;
           const bossMpPct = (this.boss.mp / this.boss.maxMp) * 100;
-          document.getElementById("bossHpBar").style.width = `${bossHpPct}%`;
+          const bossHpBar = document.getElementById("bossHpBar");
+          bossHpBar.style.width = `${bossHpPct}%`;
+          bossHpBar.classList.toggle("critical", bossHpPct < 25);
           document.getElementById("bossMpBar").style.width = `${bossMpPct}%`;
           document.getElementById(
             "bossHpText"
@@ -1592,17 +1750,16 @@
             "bossMpText"
           ).textContent = `${this.boss.mp}/${this.boss.maxMp}`;
           const bossStatus = document.getElementById("bossStatus");
-          bossStatus.style.display =
-            this.boss.status && Object.keys(this.boss.status).length
-              ? "inline-block"
-              : "none";
-          bossStatus.textContent =
-            this.boss.status && this.boss.status.dot ? "Burning" : "";
+          const bossLabels = formatStatus(this.boss.status);
+          bossStatus.style.display = bossLabels.length ? "inline-block" : "none";
+          bossStatus.textContent = bossLabels.join(" · ");
 
           this.heroes.forEach((h) => {
             const hpPct = (h.hp / h.maxHp) * 100;
             const mpPct = (h.mp / h.maxMp) * 100;
-            document.getElementById(`${h.id}HpBar`).style.width = `${hpPct}%`;
+            const hpBar = document.getElementById(`${h.id}HpBar`);
+            hpBar.style.width = `${hpPct}%`;
+            hpBar.classList.toggle("critical", hpPct < 25);
             document.getElementById(`${h.id}MpBar`).style.width = `${mpPct}%`;
             document.getElementById(
               `${h.id}HpText`
@@ -1611,12 +1768,7 @@
               `${h.id}MpText`
             ).textContent = `${h.mp}/${h.maxMp}`;
             const status = document.getElementById(`${h.id}Status`);
-            const labels = [];
-            if (h.status.atkUp) labels.push("ATK↑");
-            if (h.status.magUp) labels.push("MAG↑");
-            if (h.status.guard) labels.push("Guard");
-            if (h.status.guardTeam) labels.push("Shielded");
-            if (h.status.atkDown) labels.push("ATK↓");
+            const labels = formatStatus(h.status || {});
             status.textContent = labels.join(" · ");
             status.style.display = labels.length ? "inline-block" : "none";
           });
