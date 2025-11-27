@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Turn-Based RPG Battle</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+
+      body {
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        min-height: 100vh;
+        padding: 20px;
+        color: white;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      header {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+
+      h1 {
+        font-size: 2.5rem;
+        margin-bottom: 10px;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        background: linear-gradient(to right, #ffd700, #ffa500);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .battle-log {
+        background: rgba(0, 0, 0, 0.7);
+        border-radius: 10px;
+        padding: 15px;
+        height: 120px;
+        overflow-y: auto;
+        margin-bottom: 20px;
+        border: 2px solid #4a90e2;
+      }
+
+      .log-entry {
+        margin-bottom: 5px;
+        font-size: 0.9rem;
+        opacity: 0;
+        animation: fadeIn 0.3s ease-in forwards;
+      }
+
+      @keyframes fadeIn {
+        to {
+          opacity: 1;
+        }
+      }
+
+      .battle-area {
+        display: flex;
+        flex-direction: column;
+        gap: 30px;
+      }
+
+      .boss-container {
+        display: flex;
+        justify-content: center;
+      }
+
+      .character-card {
+        background: linear-gradient(145deg, #2c3e50, #34495e);
+        border-radius: 15px;
+        padding: 20px;
+        width: 300px;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+        border: 2px solid #3498db;
+        position: relative;
+        transition: all 0.3s ease;
+      }
+
+      .character-card.active {
+        transform: translateY(-10px);
+        box-shadow: 0 12px 24px rgba(52, 152, 219, 0.4);
+        border-color: #f1c40f;
+      }
+
+      .character-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+      }
+
+      .character-name {
+        font-size: 1.3rem;
+        font-weight: bold;
+      }
+
+      .character-role {
+        font-size: 0.9rem;
+        color: #bdc3c7;
+      }
+
+      .status-badge {
+        background: #e74c3c;
+        padding: 3px 8px;
+        border-radius: 10px;
+        font-size: 0.8rem;
+      }
+
+      .stats {
+        margin-bottom: 15px;
+      }
+
+      .stat-bar {
+        margin-bottom: 8px;
+      }
+
+      .stat-label {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.9rem;
+        margin-bottom: 3px;
+      }
+
+      .bar-container {
+        height: 12px;
+        background: #34495e;
+        border-radius: 6px;
+        overflow: hidden;
+      }
+
+      .bar-fill {
+        height: 100%;
+        border-radius: 6px;
+        transition: width 0.5s ease;
+      }
+
+      .hp-fill {
+        background: linear-gradient(90deg, #e74c3c, #c0392b);
+      }
+
+      .mp-fill {
+        background: linear-gradient(90deg, #3498db, #2980b9);
+      }
+
+      .attributes {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        text-align: center;
+      }
+
+      .attribute {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 8px;
+        border-radius: 8px;
+        font-size: 0.9rem;
+      }
+
+      .heroes-container {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        flex-wrap: wrap;
+      }
+
+      .turn-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        display: none;
+        z-index: 100;
+      }
+
+      .skills-panel {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: linear-gradient(145deg, #2c3e50, #34495e);
+        border-radius: 15px;
+        padding: 25px;
+        width: 400px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        border: 2px solid #f1c40f;
+        z-index: 101;
+        display: none;
+      }
+
+      .panel-header {
+        text-align: center;
+        margin-bottom: 20px;
+        color: #f1c40f;
+        font-size: 1.4rem;
+      }
+
+      .skills-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+      }
+
+      .skill-button {
+        background: linear-gradient(145deg, #3498db, #2980b9);
+        border: none;
+        border-radius: 10px;
+        padding: 15px;
+        color: white;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-align: center;
+      }
+
+      .skill-button:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+      }
+
+      .skill-button:disabled {
+        background: #7f8c8d;
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+
+      .skill-cost {
+        font-size: 0.9rem;
+        margin-top: 5px;
+        color: #bdc3c7;
+      }
+
+      .close-panel {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: none;
+        border: none;
+        color: #e74c3c;
+        font-size: 1.5rem;
+        cursor: pointer;
+      }
+
+      .target-selector {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        display: none;
+        z-index: 102;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .target-panel {
+        background: linear-gradient(145deg, #2c3e50, #34495e);
+        border-radius: 15px;
+        padding: 30px;
+        text-align: center;
+        border: 2px solid #f1c40f;
+      }
+
+      .target-options {
+        display: flex;
+        gap: 20px;
+        margin-top: 20px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      .target-button {
+        background: linear-gradient(145deg, #27ae60, #229954);
+        border: none;
+        border-radius: 10px;
+        padding: 12px 20px;
+        color: white;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .target-button:hover {
+        transform: scale(1.05);
+      }
+
+      .game-over {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+      }
+
+      .game-over-content {
+        background: linear-gradient(145deg, #2c3e50, #34495e);
+        border-radius: 20px;
+        padding: 40px;
+        text-align: center;
+        border: 3px solid;
+        max-width: 500px;
+        width: 90%;
+      }
+
+      .victory {
+        border-color: #27ae60;
+      }
+
+      .defeat {
+        border-color: #e74c3c;
+      }
+
+      .game-over-title {
+        font-size: 3rem;
+        margin-bottom: 20px;
+      }
+
+      .victory-title {
+        color: #27ae60;
+        text-shadow: 0 0 20px rgba(39, 174, 96, 0.5);
+      }
+
+      .defeat-title {
+        color: #e74c3c;
+        text-shadow: 0 0 20px rgba(231, 76, 60, 0.5);
+      }
+
+      .restart-button {
+        background: linear-gradient(145deg, #f39c12, #e67e22);
+        border: none;
+        border-radius: 10px;
+        padding: 15px 30px;
+        color: white;
+        font-size: 1.2rem;
+        font-weight: bold;
+        cursor: pointer;
+        margin-top: 20px;
+        transition: all 0.2s ease;
+      }
+
+      .restart-button:hover {
+        transform: scale(1.05);
+      }
+
+      .damage-text {
+        position: absolute;
+        font-weight: bold;
+        font-size: 1.2rem;
+        animation: floatUp 1s ease-out forwards;
+        z-index: 50;
+      }
+
+      @keyframes floatUp {
+        0% {
+          transform: translateY(0);
+          opacity: 1;
+        }
+        100% {
+          transform: translateY(-50px);
+          opacity: 0;
+        }
+      }
+
+      .damage {
+        color: #e74c3c;
+      }
+
+      .heal {
+        color: #27ae60;
+      }
+
+      .buff {
+        color: #3498db;
+      }
+
+      .debuff {
+        color: #9b59b6;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Turn-Based RPG Battle</h1>
+      </header>
+
+      <div class="battle-log" id="battleLog"></div>
+
+      <div class="battle-area">
+        <div class="boss-container">
+          <div class="character-card" id="bossCard">
+            <div class="character-header">
+              <div>
+                <div class="character-name">Dragon Lord</div>
+                <div class="character-role">Boss</div>
+              </div>
+              <div class="status-badge" id="bossStatus"></div>
+            </div>
+            <div class="stats">
+              <div class="stat-bar">
+                <div class="stat-label">
+                  <span>HP</span>
+                  <span id="bossHpText">800/800</span>
+                </div>
+                <div class="bar-container">
+                  <div
+                    class="bar-fill hp-fill"
+                    id="bossHpBar"
+                    style="width: 100%"
+                  ></div>
+                </div>
+              </div>
+            </div>
+            <div class="attributes">
+              <div class="attribute">
+                <div>ATK</div>
+                <div>35</div>
+              </div>
+              <div class="attribute">
+                <div>DEF</div>
+                <div>15</div>
+              </div>
+              <div class="attribute">
+                <div>MAG</div>
+                <div>25</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="heroes-container">
+          <div class="character-card" id="soldierCard" data-character="soldier">
+            <div class="character-header">
+              <div>
+                <div class="character-name">Soldier</div>
+                <div class="character-role">Physical DPS</div>
+              </div>
+              <div class="status-badge" id="soldierStatus"></div>
+            </div>
+            <div class="stats">
+              <div class="stat-bar">
+                <div class="stat-label">
+                  <span>HP</span>
+                  <span id="soldierHpText">120/120</span>
+                </div>
+                <div class="bar-container">
+                  <div
+                    class="bar-fill hp-fill"
+                    id="soldierHpBar"
+                    style="width: 100%"
+                  ></div>
+                </div>
+              </div>
+              <div class="stat-bar">
+                <div class="stat-label">
+                  <span>MP</span>
+                  <span id="soldierMpText">40/40</span>
+                </div>
+                <div class="bar-container">
+                  <div
+                    class="bar-fill mp-fill"
+                    id="soldierMpBar"
+                    style="width: 100%"
+                  ></div>
+                </div>
+              </div>
+            </div>
+            <div class="attributes">
+              <div class="attribute">
+                <div>ATK</div>
+                <div>25</div>
+              </div>
+              <div class="attribute">
+                <div>DEF</div>
+                <div>10</div>
+              </div>
+              <div class="attribute">
+                <div>MAG</div>
+                <div>5</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="character-card" id="mageCard" data-character="mage">
+            <div class="character-header">
+              <div>
+                <div class="character-name">Mage</div>
+                <div class="character-role">Magic DPS</div>
+              </div>
+              <div class="status-badge" id="mageStatus"></div>
+            </div>
+            <div class="stats">
+              <div class="stat-bar">
+                <div class="stat-label">
+                  <span>HP</span>
+                  <span id="mageHpText">80/80</span>
+                </div>
+                <div class="bar-container">
+                  <div
+                    class="bar-fill hp-fill"
+                    id="mageHpBar"
+                    style="width: 100%"
+                  ></div>
+                </div>
+              </div>
+              <div class="stat-bar">
+                <div class="stat-label">
+                  <span>MP</span>
+                  <span id="mageMpText">100/100</span>
+                </div>
+                <div class="bar-container">
+                  <div
+                    class="bar-fill mp-fill"
+                    id="mageMpBar"
+                    style="width: 100%"
+                  ></div>
+                </div>
+              </div>
+            </div>
+            <div class="attributes">
+              <div class="attribute">
+                <div>ATK</div>
+                <div>5</div>
+              </div>
+              <div class="attribute">
+                <div>DEF</div>
+                <div>5</div>
+              </div>
+              <div class="attribute">
+                <div>MAG</div>
+                <div>30</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="character-card" id="healerCard" data-character="healer">
+            <div class="character-header">
+              <div>
+                <div class="character-name">Healer</div>
+                <div class="character-role">Support</div>
+              </div>
+              <div class="status-badge" id="healerStatus"></div>
+            </div>
+            <div class="stats">
+              <div class="stat-bar">
+                <div class="stat-label">
+                  <span>HP</span>
+                  <span id="healerHpText">100/100</span>
+                </div>
+                <div class="bar-container">
+                  <div
+                    class="bar-fill hp-fill"
+                    id="healerHpBar"
+                    style="width: 100%"
+                  ></div>
+                </div>
+              </div>
+              <div class="stat-bar">
+                <div class="stat-label">
+                  <span>MP</span>
+                  <span id="healerMpText">80/80</span>
+                </div>
+                <div class="bar-container">
+                  <div
+                    class="bar-fill mp-fill"
+                    id="healerMpBar"
+                    style="width: 100%"
+                  ></div>
+                </div>
+              </div>
+            </div>
+            <div class="attributes">
+              <div class="attribute">
+                <div>ATK</div>
+                <div>8</div>
+              </div>
+              <div class="attribute">
+                <div>DEF</div>
+                <div>8</div>
+              </div>
+              <div class="attribute">
+                <div>MAG</div>
+                <div>15</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="character-card" id="tankCard" data-character="tank">
+            <div class="character-header">
+              <div>
+                <div class="character-name">Tank</div>
+                <div class="character-role">Defender</div>
+              </div>
+              <div class="status-badge" id="tankStatus"></div>
+            </div>
+            <div class="stats">
+              <div class="stat-bar">
+                <div class="stat-label">
+                  <span>HP</span>
+                  <span id="tankHpText">180/180</span>
+                </div>
+                <div class="bar-container">
+                  <div
+                    class="bar-fill hp-fill"
+                    id="tankHpBar"
+                    style="width: 100%"
+                  ></div>
+                </div>
+              </div>
+              <div class="stat-bar">
+                <div class="stat-label">
+                  <span>MP</span>
+                  <span id="tankMpText">50/50</span>
+                </div>
+                <div class="bar-container">
+                  <div
+                    class="bar-fill mp-fill"
+                    id="tankMpBar"
+                    style="width: 100%"
+                  ></div>
+                </div>
+              </div>
+            </div>
+            <div class="attributes">
+              <div class="attribute">
+                <div>ATK</div>
+                <div>15</div>
+              </div>
+              <div class="attribute">
+                <div>DEF</div>
+                <div>20</div>
+              </div>
+              <div class="attribute">
+                <div>MAG</div>
+                <div>5</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="turn-overlay" id="turnOverlay"></div>
+
+    <div class="skills-panel" id="skillsPanel">
+      <button class="close-panel" id="closeSkills">&times;</button>
+      <div class="panel-header" id="skillsHeader">Choose Skill</div>
+      <div class="skills-grid" id="skillsGrid"></div>
+    </div>
+
+    <div class="target-selector" id="targetSelector">
+      <div class="target-panel">
+        <h3>Select Target</h3>
+        <div class="target-options" id="targetOptions"></div>
+      </div>
+    </div>
+
+    <div class="game-over" id="gameOver">
+      <div class="game-over-content" id="gameOverContent">
+        <h2 class="game-over-title" id="gameOverTitle">Game Over</h2>
+        <button class="restart-button" id="restartButton">Play Again</button>
+      </div>
+    </div>
+
+    <script>
+      class RPGGame {
+        constructor() {
+          this.characters = {
+            soldier: {
+              id: "soldier",
+              name: "Soldier",
+              role: "Physical DPS",
+              maxHp: 120,
+              hp: 120,
+              maxMp: 40,
+              mp: 40,
+              atk: 25,
+              def: 10,
+              mag: 5,
+              status: null,
+              skills: [
+                {
+                  id: "basicAttack",
+                  name: "Basic Attack",
+                  cost: 0,
+                  type: "physical",
+                  target: "single",
+                },
+                {
+                  id: "powerStrike",
+                  name: "Power Strike",
+                  cost: 15,
+                  type: "physical",
+                  target: "single",
+                },
+                {
+                  id: "armorBreak",
+                  name: "Armor Break",
+                  cost: 20,
+                  type: "debuff",
+                  target: "single",
+                },
+              ],
+            },
+            mage: {
+              id: "mage",
+              name: "Mage",
+              role: "Magic DPS",
+              maxHp: 80,
+              hp: 80,
+              maxMp: 100,
+              mp: 100,
+              atk: 5,
+              def: 5,
+              mag: 30,
+              status: null,
+              skills: [
+                {
+                  id: "magicBolt",
+                  name: "Magic Bolt",
+                  cost: 10,
+                  type: "magical",
+                  target: "single",
+                },
+                {
+                  id: "firestorm",
+                  name: "Firestorm",
+                  cost: 30,
+                  type: "aoe",
+                  target: "all",
+                },
+                {
+                  id: "focus",
+                  name: "Focus",
+                  cost: 0,
+                  type: "buff",
+                  target: "self",
+                },
+              ],
+            },
+            healer: {
+              id: "healer",
+              name: "Healer",
+              role: "Support",
+              maxHp: 100,
+              hp: 100,
+              maxMp: 80,
+              mp: 80,
+              atk: 8,
+              def: 8,
+              mag: 15,
+              status: null,
+              skills: [
+                {
+                  id: "heal",
+                  name: "Heal",
+                  cost: 20,
+                  type: "heal",
+                  target: "single",
+                },
+                {
+                  id: "groupHeal",
+                  name: "Group Heal",
+                  cost: 35,
+                  type: "groupHeal",
+                  target: "all",
+                },
+                {
+                  id: "purify",
+                  name: "Purify",
+                  cost: 25,
+                  type: "cleanse",
+                  target: "single",
+                },
+                {
+                  id: "basicAttack",
+                  name: "Basic Attack",
+                  cost: 0,
+                  type: "physical",
+                  target: "single",
+                },
+              ],
+            },
+            tank: {
+              id: "tank",
+              name: "Tank",
+              role: "Defender",
+              maxHp: 180,
+              hp: 180,
+              maxMp: 50,
+              mp: 50,
+              atk: 15,
+              def: 20,
+              mag: 5,
+              status: null,
+              skills: [
+                {
+                  id: "guard",
+                  name: "Guard",
+                  cost: 0,
+                  type: "defend",
+                  target: "self",
+                },
+                {
+                  id: "provoke",
+                  name: "Provoke",
+                  cost: 15,
+                  type: "taunt",
+                  target: "self",
+                },
+                {
+                  id: "shieldWall",
+                  name: "Shield Wall",
+                  cost: 25,
+                  type: "partyBuff",
+                  target: "all",
+                },
+              ],
+            },
+          };
+
+          this.boss = {
+            id: "boss",
+            name: "Dragon Lord",
+            maxHp: 800,
+            hp: 800,
+            atk: 35,
+            def: 15,
+            mag: 25,
+            status: null,
+          };
+
+          this.turnOrder = ["soldier", "mage", "healer", "tank", "boss"];
+          this.currentTurn = 0;
+          this.gameState = "playing"; // playing, victory, defeat
+          this.activeSkill = null;
+          this.buffEffects = {};
+          this.debuffEffects = {};
+
+          this.initializeEventListeners();
+          this.updateUI();
+        }
+
+        initializeEventListeners() {
+          document
+            .getElementById("closeSkills")
+            .addEventListener("click", () => {
+              this.hideSkillsPanel();
+            });
+
+          document
+            .getElementById("restartButton")
+            .addEventListener("click", () => {
+              this.resetGame();
+            });
+        }
+
+        getCurrentCharacter() {
+          return this.turnOrder[this.currentTurn] === "boss"
+            ? this.boss
+            : this.characters[this.turnOrder[this.currentTurn]];
+        }
+
+        isPlayerTurn() {
+          return (
+            this.turnOrder[this.currentTurn] !== "boss" &&
+            this.gameState === "playing"
+          );
+        }
+
+        updateUI() {
+          // Update boss
+          const bossHpPercent = (this.boss.hp / this.boss.maxHp) * 100;
+          document.getElementById(
+            "bossHpBar"
+          ).style.width = `${bossHpPercent}%`;
+          document.getElementById(
+            "bossHpText"
+          ).textContent = `${this.boss.hp}/${this.boss.maxHp}`;
+          document.getElementById("bossStatus").textContent =
+            this.boss.status || "";
+          document.getElementById("bossStatus").style.display = this.boss.status
+            ? "block"
+            : "none";
+
+          // Update characters
+          Object.keys(this.characters).forEach((charId) => {
+            const char = this.characters[charId];
+            const hpPercent = (char.hp / char.maxHp) * 100;
+            const mpPercent = (char.mp / char.maxMp) * 100;
+
+            document.getElementById(
+              `${charId}HpBar`
+            ).style.width = `${hpPercent}%`;
+            document.getElementById(
+              `${charId}MpBar`
+            ).style.width = `${mpPercent}%`;
+            document.getElementById(
+              `${charId}HpText`
+            ).textContent = `${char.hp}/${char.maxHp}`;
+            document.getElementById(
+              `${charId}MpText`
+            ).textContent = `${char.mp}/${char.maxMp}`;
+            document.getElementById(`${charId}Status`).textContent =
+              char.status || "";
+            document.getElementById(`${charId}Status`).style.display =
+              char.status ? "block" : "none";
+
+            // Highlight active character
+            const card = document.getElementById(`${charId}Card`);
+            if (
+              this.isPlayerTurn() &&
+              this.turnOrder[this.currentTurn] === charId
+            ) {
+              card.classList.add("active");
+            } else {
+              card.classList.remove("active");
+            }
+          });
+
+          // Check win/lose conditions
+          this.checkGameEnd();
+        }
+
+        checkGameEnd() {
+          if (this.boss.hp <= 0 && this.gameState === "playing") {
+            this.gameState = "victory";
+            this.showGameOver("victory");
+            return;
+          }
+
+          const aliveHeroes = Object.values(this.characters).filter(
+            (char) => char.hp > 0
+          );
+          if (aliveHeroes.length === 0 && this.gameState === "playing") {
+            this.gameState = "defeat";
+            this.showGameOver("defeat");
+          }
+        }
+
+        showGameOver(result) {
+          const gameOver = document.getElementById("gameOver");
+          const gameOverContent = document.getElementById("gameOverContent");
+          const gameOverTitle = document.getElementById("gameOverTitle");
+
+          if (result === "victory") {
+            gameOverTitle.textContent = "VICTORY!";
+            gameOverTitle.className = "game-over-title victory-title";
+            gameOverContent.className = "game-over-content victory";
+          } else {
+            gameOverTitle.textContent = "DEFEAT!";
+            gameOverTitle.className = "game-over-title defeat-title";
+            gameOverContent.className = "game-over-content defeat";
+          }
+
+          gameOver.style.display = "flex";
+        }
+
+        resetGame() {
+          // Reset characters
+          Object.keys(this.characters).forEach((charId) => {
+            const char = this.characters[charId];
+            char.hp = char.maxHp;
+            char.mp = char.maxMp;
+            char.status = null;
+          });
+
+          // Reset boss
+          this.boss.hp = this.boss.maxHp;
+          this.boss.status = null;
+
+          // Reset game state
+          this.currentTurn = 0;
+          this.gameState = "playing";
+          this.activeSkill = null;
+          this.buffEffects = {};
+          this.debuffEffects = {};
+
+          // Hide overlays
+          document.getElementById("turnOverlay").style.display = "none";
+          document.getElementById("skillsPanel").style.display = "none";
+          document.getElementById("targetSelector").style.display = "none";
+          document.getElementById("gameOver").style.display = "none";
+
+          this.updateUI();
+          this.processTurn();
+        }
+
+        processTurn() {
+          if (this.gameState !== "playing") return;
+
+          const currentChar = this.getCurrentCharacter();
+
+          if (this.turnOrder[this.currentTurn] === "boss") {
+            setTimeout(() => {
+              this.executeBossTurn();
+            }, 1500);
+          } else {
+            // Player turn
+            this.showSkillsPanel(currentChar);
+          }
+        }
+
+        showSkillsPanel(character) {
+          const panel = document.getElementById("skillsPanel");
+          const header = document.getElementById("skillsGrid");
+          const overlay = document.getElementById("turnOverlay");
+
+          header.innerHTML = "";
+
+          character.skills.forEach((skill) => {
+            const button = document.createElement("button");
+            button.className = "skill-button";
+            button.innerHTML = `
+                        <div>${skill.name}</div>
+                        <div class="skill-cost">${
+                          skill.cost > 0 ? `${skill.cost} MP` : "No Cost"
+                        }</div>
+                    `;
+
+            if (character.mp < skill.cost) {
+              button.disabled = true;
+            }
+
+            button.addEventListener("click", () => {
+              this.selectSkill(skill);
+            });
+
+            header.appendChild(button);
+          });
+
+          document.getElementById(
+            "skillsHeader"
+          ).textContent = `${character.name}'s Skills`;
+          overlay.style.display = "block";
+          panel.style.display = "block";
+        }
+
+        hideSkillsPanel() {
+          document.getElementById("turnOverlay").style.display = "none";
+          document.getElementById("skillsPanel").style.display = "none";
+        }
+
+        selectSkill(skill) {
+          this.activeSkill = skill;
+          this.hideSkillsPanel();
+
+          if (skill.target === "self") {
+            this.executeSkill(
+              this.getCurrentCharacter(),
+              skill,
+              this.getCurrentCharacter()
+            );
+          } else if (skill.target === "all") {
+            this.executeSkill(this.getCurrentCharacter(), skill, "all");
+          } else {
+            this.showTargetSelector(skill);
+          }
+        }
+
+        showTargetSelector(skill) {
+          const selector = document.getElementById("targetSelector");
+          const options = document.getElementById("targetOptions");
+          options.innerHTML = "";
+
+          if (
+            skill.type === "heal" ||
+            skill.type === "groupHeal" ||
+            skill.type === "cleanse"
+          ) {
+            // Show ally targets
+            Object.keys(this.characters).forEach((charId) => {
+              const char = this.characters[charId];
+              if (char.hp > 0) {
+                const button = document.createElement("button");
+                button.className = "target-button";
+                button.textContent = char.name;
+                button.addEventListener("click", () => {
+                  this.executeSkill(this.getCurrentCharacter(), skill, char);
+                });
+                options.appendChild(button);
+              }
+            });
+          } else {
+            // Show enemy target (boss)
+            const button = document.createElement("button");
+            button.className = "target-button";
+            button.textContent = this.boss.name;
+            button.addEventListener("click", () => {
+              this.executeSkill(this.getCurrentCharacter(), skill, this.boss);
+            });
+            options.appendChild(button);
+          }
+
+          selector.style.display = "flex";
+        }
+
+        hideTargetSelector() {
+          document.getElementById("targetSelector").style.display = "none";
+        }
+
+        calculateDamage(attacker, defender, baseDamage, isMagical = false) {
+          const attackStat = isMagical ? attacker.mag : attacker.atk;
+          const defenseStat = isMagical ? defender.def / 2 : defender.def;
+          const variance = Math.floor(Math.random() * 10) - 5;
+          return Math.max(
+            1,
+            Math.floor(baseDamage + attackStat - defenseStat + variance)
+          );
+        }
+
+        showDamageText(targetElement, amount, type) {
+          const rect = targetElement.getBoundingClientRect();
+          const damageText = document.createElement("div");
+          damageText.className = `damage-text ${type}`;
+          damageText.textContent =
+            type === "damage"
+              ? `-${amount}`
+              : type === "heal"
+              ? `+${amount}`
+              : amount;
+          damageText.style.left = `${rect.left + rect.width / 2}px`;
+          damageText.style.top = `${rect.top}px`;
+
+          document.body.appendChild(damageText);
+
+          setTimeout(() => {
+            document.body.removeChild(damageText);
+          }, 1000);
+        }
+
+        executeSkill(caster, skill, target) {
+          this.hideTargetSelector();
+          let logMessage = "";
+
+          // Deduct MP
+          if (skill.cost > 0) {
+            caster.mp = Math.max(0, caster.mp - skill.cost);
+          }
+
+          switch (skill.type) {
+            case "physical":
+              if (target === this.boss) {
+                const damage = this.calculateDamage(caster, target, 15, false);
+                this.boss.hp = Math.max(0, this.boss.hp - damage);
+                logMessage = `${caster.name} uses ${skill.name} on ${this.boss.name} for ${damage} damage!`;
+                this.showDamageText(
+                  document.getElementById("bossCard"),
+                  damage,
+                  "damage"
+                );
+              }
+              break;
+
+            case "magical":
+              if (target === this.boss) {
+                const damage = this.calculateDamage(caster, target, 20, true);
+                this.boss.hp = Math.max(0, this.boss.hp - damage);
+                logMessage = `${caster.name} casts ${skill.name} on ${this.boss.name} for ${damage} damage!`;
+                this.showDamageText(
+                  document.getElementById("bossCard"),
+                  damage,
+                  "damage"
+                );
+              }
+              break;
+
+            case "aoe":
+              if (target === "all") {
+                const damage = this.calculateDamage(
+                  caster,
+                  this.boss,
+                  25,
+                  true
+                );
+                this.boss.hp = Math.max(0, this.boss.hp - damage);
+                logMessage = `${caster.name} casts ${skill.name} for ${damage} damage to ${this.boss.name}!`;
+                this.showDamageText(
+                  document.getElementById("bossCard"),
+                  damage,
+                  "damage"
+                );
+              }
+              break;
+
+            case "heal":
+              const healAmount = Math.floor(Math.random() * 30) + 40;
+              target.hp = Math.min(target.maxHp, target.hp + healAmount);
+              logMessage = `${caster.name} heals ${target.name} for ${healAmount} HP!`;
+              this.showDamageText(
+                document.getElementById(`${target.id}Card`),
+                healAmount,
+                "heal"
+              );
+              break;
+
+            case "groupHeal":
+              const groupHealAmount = Math.floor(Math.random() * 15) + 20;
+              Object.values(this.characters).forEach((char) => {
+                if (char.hp > 0) {
+                  char.hp = Math.min(char.maxHp, char.hp + groupHealAmount);
+                  this.showDamageText(
+                    document.getElementById(`${char.id}Card`),
+                    groupHealAmount,
+                    "heal"
+                  );
+                }
+              });
+              logMessage = `${caster.name} casts Group Heal for ${groupHealAmount} HP to all allies!`;
+              break;
+
+            case "defend":
+              caster.status = "Defending";
+              logMessage = `${caster.name} takes a defensive stance!`;
+              break;
+
+            case "taunt":
+              caster.status = "Taunting";
+              logMessage = `${caster.name} provokes the boss!`;
+              break;
+
+            case "buff":
+              caster.status = "Focused";
+              logMessage = `${caster.name} focuses their energy!`;
+              break;
+
+            case "debuff":
+              if (target === this.boss) {
+                this.boss.status = "Armor Broken";
+                logMessage = `${caster.name} breaks ${this.boss.name}'s armor!`;
+                this.showDamageText(
+                  document.getElementById("bossCard"),
+                  "Armor Broken",
+                  "debuff"
+                );
+              }
+              break;
+          }
+
+          this.addToLog(logMessage);
+          this.updateUI();
+
+          // Move to next turn
+          setTimeout(() => {
+            this.nextTurn();
+          }, 1000);
+        }
+
+        executeBossTurn() {
+          const aliveHeroes = Object.values(this.characters).filter(
+            (char) => char.hp > 0
+          );
+          if (aliveHeroes.length === 0) return;
+
+          let logMessage = "";
+          const tauntedHero = aliveHeroes.find(
+            (hero) => hero.status === "Taunting"
+          );
+
+          if (tauntedHero && Math.random() > 0.3) {
+            // 70% chance to attack taunted hero
+            const damage = this.calculateDamage(
+              this.boss,
+              tauntedHero,
+              30,
+              false
+            );
+            tauntedHero.hp = Math.max(0, tauntedHero.hp - damage);
+            logMessage = `${this.boss.name} attacks ${tauntedHero.name} for ${damage} damage!`;
+            this.showDamageText(
+              document.getElementById(`${tauntedHero.id}Card`),
+              damage,
+              "damage"
+            );
+            // Clear taunt status
+            tauntedHero.status = null;
+          } else {
+            // Choose attack pattern
+            if (Math.random() > 0.7 && aliveHeroes.length > 2) {
+              // 30% chance for AoE if many heroes alive
+              aliveHeroes.forEach((hero) => {
+                const damage = this.calculateDamage(this.boss, hero, 15, true);
+                hero.hp = Math.max(0, hero.hp - damage);
+                this.showDamageText(
+                  document.getElementById(`${hero.id}Card`),
+                  damage,
+                  "damage"
+                );
+              });
+              logMessage = `${this.boss.name} breathes fire on all heroes for 15 damage each!`;
+            } else {
+              // Single target attack on weakest hero
+              const weakestHero = aliveHeroes.reduce((weakest, hero) =>
+                hero.hp < weakest.hp ? hero : weakest
+              );
+              const damage = this.calculateDamage(
+                this.boss,
+                weakestHero,
+                35,
+                false
+              );
+              weakestHero.hp = Math.max(0, weakestHero.hp - damage);
+              logMessage = `${this.boss.name} attacks ${weakestHero.name} for ${damage} damage!`;
+              this.showDamageText(
+                document.getElementById(`${weakestHero.id}Card`),
+                damage,
+                "damage"
+              );
+            }
+          }
+
+          this.addToLog(logMessage);
+          this.updateUI();
+
+          // Move to next turn
+          setTimeout(() => {
+            this.nextTurn();
+          }, 1000);
+        }
+
+        nextTurn() {
+          this.currentTurn = (this.currentTurn + 1) % this.turnOrder.length;
+          this.processTurn();
+        }
+
+        addToLog(message) {
+          const log = document.getElementById("battleLog");
+          const entry = document.createElement("div");
+          entry.className = "log-entry";
+          entry.textContent = message;
+          log.appendChild(entry);
+          log.scrollTop = log.scrollHeight;
+        }
+      }
+
+      // Initialize game when page loads
+      document.addEventListener("DOMContentLoaded", () => {
+        const game = new RPGGame();
+        game.processTurn();
+      });
+    </script>
+  </body>
+</html>
