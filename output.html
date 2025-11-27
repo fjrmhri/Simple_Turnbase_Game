@@ -13,7 +13,8 @@
 
       :root {
         --space: #050912;
-        --panel: rgba(18, 26, 48, 0.8);
+        --panel: rgba(18, 26, 48, 0.92);
+
         --card: rgba(23, 32, 60, 0.9);
         --line: rgba(116, 240, 237, 0.3);
         --hp: linear-gradient(90deg, #ff8f70, #ff3d3d);
@@ -714,8 +715,8 @@
               <h3 style="text-align: center">Battle Log</h3>
               <div class="log-body" id="logBody"></div>
             </div>
-              <div class="arena-center">
-            <div class="dragon-area">
+            <div class="arena-center">
+              <div class="dragon-area">
                 <div class="boss-card" id="bossCard">
                   <div class="boss-top">
                     <div class="boss-avatar">
@@ -1213,7 +1214,9 @@
         }
 
         rebuildTurnOrder() {
-          const livingUnits = [...this.heroes, this.boss].filter((u) => u.hp > 0);
+          const livingUnits = [...this.heroes, this.boss].filter(
+            (u) => u.hp > 0
+          );
           livingUnits.sort((a, b) => (b.spd || 10) - (a.spd || 10));
           this.turnOrder = livingUnits.map((u) => u.id);
           this.turnIndex = 0;
@@ -1280,13 +1283,18 @@
           const barRect = this.skillBar.getBoundingClientRect();
           const tooltipWidth = this.skillInfo.offsetWidth;
           const left = Math.min(
-            Math.max(btnRect.left - barRect.left + btnRect.width / 2 - tooltipWidth / 2, 8),
+            Math.max(
+              btnRect.left -
+                barRect.left +
+                btnRect.width / 2 -
+                tooltipWidth / 2,
+              8
+            ),
             barRect.width - tooltipWidth - 8
           );
-          const top = Math.max(
-            btnRect.top - barRect.top - this.skillInfo.offsetHeight - 8,
-            8
-          );
+          const top =
+            btnRect.top - barRect.top - this.skillInfo.offsetHeight - 12;
+
           this.skillInfo.style.left = `${left}px`;
           this.skillInfo.style.top = `${top}px`;
         }
@@ -1418,7 +1426,11 @@
           const guardTeam = target.status.guardTeam?.amount || 0;
           let synergyMulti = 1;
           if (!isMagic && target.status?.defDown) synergyMulti += 0.15;
-          if (source.id === "tank" && this.boss.status?.dot && target.id === "boss")
+          if (
+            source.id === "tank" &&
+            this.boss.status?.dot &&
+            target.id === "boss"
+          )
             synergyMulti += 0.1;
           const enrageMultiplier =
             source.id === "boss" && this.isDragonEnraged() ? 2 : 1;
@@ -1556,13 +1568,17 @@
           if (!choice) {
             choice = this.chooseDragonSkill();
             if (this.bossEnraged && choice.pattern === "aoe") {
-              this.log("The dragon inhales sharply, flames gathering in its throat!");
+              this.log(
+                "The dragon inhales sharply, flames gathering in its throat!"
+              );
               this.bossWindupSkill = choice;
               this.advanceTurn();
               return;
             }
           } else {
-            this.log("The dragon unleashes its stored power in a blazing roar!");
+            this.log(
+              "The dragon unleashes its stored power in a blazing roar!"
+            );
             this.bossWindupSkill = null;
           }
 
@@ -1614,19 +1630,20 @@
 
         chooseDragonSkill() {
           const enraged = this.isDragonEnraged() || this.bossEnraged;
-          const weightedSkills = (enraged
-            ? this.boss.skills.map((s) => ({
-                ...s,
-                weight:
-                  s.id === "cinderWave"
-                    ? (s.weight || 1) + 2
-                    : s.id === "fieryRend"
-                    ? (s.weight || 1) + 1
-                    : s.id === "obliterate"
-                    ? (s.weight || 1) + 1
-                    : s.weight || 1,
-              }))
-            : this.boss.skills
+          const weightedSkills = (
+            enraged
+              ? this.boss.skills.map((s) => ({
+                  ...s,
+                  weight:
+                    s.id === "cinderWave"
+                      ? (s.weight || 1) + 2
+                      : s.id === "fieryRend"
+                      ? (s.weight || 1) + 1
+                      : s.id === "obliterate"
+                      ? (s.weight || 1) + 1
+                      : s.weight || 1,
+                }))
+              : this.boss.skills
           ).filter((s) => s.cost === 0 || this.boss.mp >= s.cost);
 
           const pool = weightedSkills.length
@@ -1646,9 +1663,7 @@
             this.boss.status.taunt &&
             this.getHero(this.boss.status.taunt.target);
           if (tauntTarget && tauntTarget.hp > 0 && Math.random() < 0.7) {
-            this.log(
-              `Dragon is provoked and focuses the ${tauntTarget.name}!`
-            );
+            this.log(`Dragon is provoked and focuses the ${tauntTarget.name}!`);
             return tauntTarget;
           }
           return aliveHeroes.reduce((lowest, hero) => {
@@ -1699,7 +1714,9 @@
             bossLabels.push(`DEF↓ (${this.boss.status.defDown.duration})`);
           if (this.boss.status?.taunt)
             bossLabels.push(`Provoked (${this.boss.status.taunt.duration})`);
-          bossStatus.style.display = bossLabels.length ? "inline-block" : "none";
+          bossStatus.style.display = bossLabels.length
+            ? "inline-block"
+            : "none";
           bossStatus.textContent = bossLabels.join(" · ");
 
           this.heroes.forEach((h) => {
