@@ -36,34 +36,40 @@
 
       body {
         font-family: "Monocraft", monospace;
-        background: radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.07), transparent 30%),
-          radial-gradient(circle at 80% 0%, rgba(116, 240, 237, 0.12), transparent 35%),
-          linear-gradient(135deg, #0b1021 0%, #0f172e 50%, #0a1030 100%);
+        background: radial-gradient(circle at 18% 18%, rgba(116, 240, 237, 0.1), transparent 28%),
+          radial-gradient(circle at 78% 16%, rgba(255, 200, 87, 0.12), transparent 32%),
+          radial-gradient(circle at 40% 70%, rgba(255, 107, 107, 0.09), transparent 30%),
+          linear-gradient(135deg, #070a14 0%, #0c1230 45%, #0a1228 100%);
         color: var(--text-main);
         min-height: 100vh;
-        padding: 24px;
-        overflow-x: hidden;
+        margin: 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
       }
 
       .page-shell {
-        max-width: 1400px;
-        margin: 0 auto;
+        flex: 1;
+        width: 100%;
+        min-height: 100vh;
+        position: relative;
+        display: flex;
+        flex-direction: column;
       }
 
       header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 18px;
-        padding: 12px 20px;
-        border-radius: 16px;
+        padding: 18px 28px;
+        border-radius: 0 0 22px 22px;
         background: linear-gradient(135deg, rgba(116, 240, 237, 0.08), rgba(255, 200, 87, 0.08));
-        border: 1px solid rgba(116, 240, 237, 0.2);
-        box-shadow: var(--shadow-strong);
+        border-bottom: 1px solid rgba(116, 240, 237, 0.2);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
       }
 
       .title-group h1 {
-        font-size: 2.2rem;
+        font-size: 2.4rem;
         letter-spacing: 1px;
         color: var(--primary);
         text-shadow: 0 6px 22px rgba(116, 240, 237, 0.4);
@@ -72,13 +78,16 @@
       .title-group p {
         color: var(--text-muted);
         margin-top: 4px;
-        font-size: 0.95rem;
+        font-size: 1rem;
       }
 
       .layout {
+        flex: 1;
         display: grid;
-        grid-template-columns: 280px 1fr 320px;
-        gap: 18px;
+        grid-template-columns: 320px 1fr 260px;
+        gap: 16px;
+        padding: 16px 20px 24px;
+        min-height: 0;
       }
 
       .panel {
@@ -88,6 +97,9 @@
         padding: 16px;
         box-shadow: var(--shadow-strong);
         backdrop-filter: blur(10px);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
       }
 
       .panel-title {
@@ -98,11 +110,12 @@
       }
 
       .battle-log {
-        height: 540px;
+        flex: 1;
         overflow-y: auto;
         display: flex;
         flex-direction: column;
         gap: 10px;
+        padding-right: 4px;
       }
 
       .log-entry {
@@ -125,49 +138,55 @@
       .battle-stage {
         position: relative;
         overflow: hidden;
-        background: linear-gradient(180deg, rgba(10, 15, 31, 0.85), rgba(9, 13, 26, 0.6));
-        border-radius: 22px;
+        background: radial-gradient(circle at 50% 10%, rgba(116, 240, 237, 0.12), transparent 35%),
+          radial-gradient(circle at 50% 80%, rgba(255, 107, 107, 0.12), transparent 32%),
+          linear-gradient(180deg, rgba(10, 15, 31, 0.92), rgba(6, 10, 22, 0.75));
+        border-radius: 26px;
         border: 1px solid rgba(116, 240, 237, 0.2);
         box-shadow: var(--shadow-strong);
-        min-height: 640px;
+        min-height: calc(100vh - 180px);
+        height: 100%;
       }
 
       .stage-overlay {
         position: absolute;
         inset: 0;
-        background: radial-gradient(circle at 50% 20%, rgba(116, 240, 237, 0.15), transparent 45%),
-          radial-gradient(circle at 80% 80%, rgba(255, 107, 107, 0.2), transparent 40%);
+        background: linear-gradient(135deg, rgba(116, 240, 237, 0.08), rgba(255, 200, 87, 0.06));
+        opacity: 0.55;
         pointer-events: none;
       }
 
       .battle-content {
         position: relative;
-        padding: 24px 28px 18px;
+        width: 100%;
         height: 100%;
         display: flex;
-        flex-direction: column;
-        justify-content: space-between;
+        align-items: stretch;
+        justify-content: center;
       }
 
       .boss-area {
+        position: absolute;
+        top: 38px;
+        left: 50%;
+        transform: translateX(-50%);
         display: flex;
         justify-content: center;
-        margin-top: 6px;
-      }
-
-      .hero-skill-row {
-        display: grid;
-        grid-template-columns: 1fr 320px;
-        align-items: center;
-        gap: 18px;
+        z-index: 30;
       }
 
       .heroes-container {
+        position: absolute;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
         display: flex;
+        align-items: flex-end;
         justify-content: center;
-        gap: 16px;
-        flex-wrap: wrap;
-        padding: 16px;
+        gap: 14px;
+        padding: 12px 18px;
+        flex-wrap: nowrap;
+        z-index: 40;
       }
 
       .character-card {
@@ -180,6 +199,7 @@
         position: relative;
         transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease,
           filter 0.35s ease;
+        z-index: 20;
       }
 
       .character-card::before {
@@ -194,9 +214,10 @@
       }
 
       .character-card.active {
-        transform: translateY(-10px) scale(1.02);
-        border-color: rgba(116, 240, 237, 0.6);
-        box-shadow: 0 18px 30px rgba(116, 240, 237, 0.22);
+        transform: translateY(-14px) scale(1.04);
+        border-color: rgba(116, 240, 237, 0.75);
+        box-shadow: 0 18px 38px rgba(116, 240, 237, 0.28), 0 0 0 6px rgba(116, 240, 237, 0.08);
+        z-index: 130;
       }
 
       .character-card.active::before {
@@ -326,18 +347,22 @@
       }
 
       .skills-panel {
-        position: relative;
+        position: fixed;
+        min-width: 260px;
         background: var(--bg-card);
         border-radius: 18px;
-        border: 1px solid rgba(116, 240, 237, 0.25);
+        border: 1px solid rgba(116, 240, 237, 0.35);
         padding: 18px;
         box-shadow: 0 18px 34px rgba(0, 0, 0, 0.35);
         display: none;
-        z-index: 120;
+        z-index: 140;
+        transition: transform 0.3s ease, opacity 0.3s ease;
+        opacity: 0;
       }
 
       .skills-panel.visible {
         display: block;
+        opacity: 1;
       }
 
       .skills-header {
@@ -413,25 +438,34 @@
       }
 
       .turn-overlay {
-        background: rgba(7, 10, 22, 0.6);
-        backdrop-filter: blur(6px);
+        background: radial-gradient(circle at 50% 35%, rgba(116, 240, 237, 0.18), transparent 40%),
+          radial-gradient(circle at 70% 70%, rgba(255, 107, 107, 0.22), transparent 45%),
+          rgba(7, 10, 22, 0.55);
+        backdrop-filter: blur(8px) brightness(0.7);
         pointer-events: none;
-        z-index: 110;
+        z-index: 80;
+        opacity: 0;
+        transition: opacity 0.3s ease;
       }
 
-      body.overlay-active .battle-stage,
-      body.targeting .battle-stage {
-        filter: blur(2px) brightness(0.8);
+      .turn-overlay.visible {
+        opacity: 1;
+        display: block;
       }
 
       body.overlay-active .character-card:not(.active),
       body.targeting .character-card:not(.active) {
-        filter: blur(1px) opacity(0.6);
+        filter: blur(2px) opacity(0.55);
+      }
+
+      body.overlay-active .boss-card {
+        filter: blur(2px) opacity(0.8);
       }
 
       .target-selector {
-        background: rgba(7, 10, 22, 0.75);
-        backdrop-filter: blur(4px);
+        background: rgba(7, 10, 22, 0.78);
+        backdrop-filter: blur(6px);
+        z-index: 210;
       }
 
       .target-panel {
@@ -567,15 +601,17 @@
         }
 
         .battle-log {
-          height: 200px;
-        }
-
-        .hero-skill-row {
-          grid-template-columns: 1fr;
+          max-height: 260px;
         }
 
         .skills-panel {
-          position: relative;
+          position: fixed;
+          width: 90vw;
+        }
+
+        .boss-card,
+        .character-card {
+          width: 200px;
         }
       }
     </style>
@@ -635,193 +671,191 @@
               </div>
             </div>
 
-            <div class="hero-skill-row">
-              <div class="heroes-container">
-                <div class="character-card" id="soldierCard" data-character="soldier">
-                  <div class="character-top">
-                    <div class="portrait">
-                      <img src="gif/soldier.gif" alt="Soldier" />
-                    </div>
-                    <div class="character-meta">
-                      <div class="character-name">Soldier</div>
-                      <div class="character-role">Physical DPS</div>
-                    </div>
-                    <div class="status-badge" id="soldierStatus"></div>
+            <div class="heroes-container">
+              <div class="character-card" id="soldierCard" data-character="soldier">
+                <div class="character-top">
+                  <div class="portrait">
+                    <img src="gif/soldier.gif" alt="Soldier" />
                   </div>
-                  <div class="stats">
-                    <div class="stat-bar">
-                      <div class="stat-label">
-                        <span>HP</span>
-                        <span id="soldierHpText">120/120</span>
-                      </div>
-                      <div class="bar-container">
-                        <div class="bar-fill hp-fill" id="soldierHpBar" style="width: 100%"></div>
-                      </div>
+                  <div class="character-meta">
+                    <div class="character-name">Soldier</div>
+                    <div class="character-role">Physical DPS</div>
+                  </div>
+                  <div class="status-badge" id="soldierStatus"></div>
+                </div>
+                <div class="stats">
+                  <div class="stat-bar">
+                    <div class="stat-label">
+                      <span>HP</span>
+                      <span id="soldierHpText">120/120</span>
                     </div>
-                    <div class="stat-bar">
-                      <div class="stat-label">
-                        <span>MP</span>
-                        <span id="soldierMpText">40/40</span>
-                      </div>
-                      <div class="bar-container">
-                        <div class="bar-fill mp-fill" id="soldierMpBar" style="width: 100%"></div>
-                      </div>
+                    <div class="bar-container">
+                      <div class="bar-fill hp-fill" id="soldierHpBar" style="width: 100%"></div>
                     </div>
                   </div>
-                  <div class="attributes">
-                    <div class="attribute">
-                      ATK<strong>25</strong>
+                  <div class="stat-bar">
+                    <div class="stat-label">
+                      <span>MP</span>
+                      <span id="soldierMpText">40/40</span>
                     </div>
-                    <div class="attribute">
-                      DEF<strong>10</strong>
-                    </div>
-                    <div class="attribute">
-                      MAG<strong>5</strong>
+                    <div class="bar-container">
+                      <div class="bar-fill mp-fill" id="soldierMpBar" style="width: 100%"></div>
                     </div>
                   </div>
                 </div>
-
-                <div class="character-card" id="mageCard" data-character="mage">
-                  <div class="character-top">
-                    <div class="portrait">
-                      <img src="gif/mage.gif" alt="Mage" />
-                    </div>
-                    <div class="character-meta">
-                      <div class="character-name">Mage</div>
-                      <div class="character-role">Magic DPS</div>
-                    </div>
-                    <div class="status-badge" id="mageStatus"></div>
+                <div class="attributes">
+                  <div class="attribute">
+                    ATK<strong>25</strong>
                   </div>
-                  <div class="stats">
-                    <div class="stat-bar">
-                      <div class="stat-label">
-                        <span>HP</span>
-                        <span id="mageHpText">80/80</span>
-                      </div>
-                      <div class="bar-container">
-                        <div class="bar-fill hp-fill" id="mageHpBar" style="width: 100%"></div>
-                      </div>
-                    </div>
-                    <div class="stat-bar">
-                      <div class="stat-label">
-                        <span>MP</span>
-                        <span id="mageMpText">100/100</span>
-                      </div>
-                      <div class="bar-container">
-                        <div class="bar-fill mp-fill" id="mageMpBar" style="width: 100%"></div>
-                      </div>
-                    </div>
+                  <div class="attribute">
+                    DEF<strong>10</strong>
                   </div>
-                  <div class="attributes">
-                    <div class="attribute">
-                      ATK<strong>5</strong>
-                    </div>
-                    <div class="attribute">
-                      DEF<strong>5</strong>
-                    </div>
-                    <div class="attribute">
-                      MAG<strong>30</strong>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="character-card" id="healerCard" data-character="healer">
-                  <div class="character-top">
-                    <div class="portrait">
-                      <img src="gif/healer.gif" alt="Healer" />
-                    </div>
-                    <div class="character-meta">
-                      <div class="character-name">Healer</div>
-                      <div class="character-role">Support</div>
-                    </div>
-                    <div class="status-badge" id="healerStatus"></div>
-                  </div>
-                  <div class="stats">
-                    <div class="stat-bar">
-                      <div class="stat-label">
-                        <span>HP</span>
-                        <span id="healerHpText">100/100</span>
-                      </div>
-                      <div class="bar-container">
-                        <div class="bar-fill hp-fill" id="healerHpBar" style="width: 100%"></div>
-                      </div>
-                    </div>
-                    <div class="stat-bar">
-                      <div class="stat-label">
-                        <span>MP</span>
-                        <span id="healerMpText">80/80</span>
-                      </div>
-                      <div class="bar-container">
-                        <div class="bar-fill mp-fill" id="healerMpBar" style="width: 100%"></div>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="attributes">
-                    <div class="attribute">
-                      ATK<strong>8</strong>
-                    </div>
-                    <div class="attribute">
-                      DEF<strong>8</strong>
-                    </div>
-                    <div class="attribute">
-                      MAG<strong>15</strong>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="character-card" id="tankCard" data-character="tank">
-                  <div class="character-top">
-                    <div class="portrait">
-                      <img src="gif/tank.gif" alt="Tank" />
-                    </div>
-                    <div class="character-meta">
-                      <div class="character-name">Tank</div>
-                      <div class="character-role">Defender</div>
-                    </div>
-                    <div class="status-badge" id="tankStatus"></div>
-                  </div>
-                  <div class="stats">
-                    <div class="stat-bar">
-                      <div class="stat-label">
-                        <span>HP</span>
-                        <span id="tankHpText">180/180</span>
-                      </div>
-                      <div class="bar-container">
-                        <div class="bar-fill hp-fill" id="tankHpBar" style="width: 100%"></div>
-                      </div>
-                    </div>
-                    <div class="stat-bar">
-                      <div class="stat-label">
-                        <span>MP</span>
-                        <span id="tankMpText">50/50</span>
-                      </div>
-                      <div class="bar-container">
-                        <div class="bar-fill mp-fill" id="tankMpBar" style="width: 100%"></div>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="attributes">
-                    <div class="attribute">
-                      ATK<strong>15</strong>
-                    </div>
-                    <div class="attribute">
-                      DEF<strong>20</strong>
-                    </div>
-                    <div class="attribute">
-                      MAG<strong>5</strong>
-                    </div>
+                  <div class="attribute">
+                    MAG<strong>5</strong>
                   </div>
                 </div>
               </div>
 
-              <div class="skills-panel" id="skillsPanel">
-                <div class="skills-header">
-                  <h3 id="skillsHeader">Skills</h3>
-                  <button class="close-panel" id="closeSkills">✕</button>
+              <div class="character-card" id="mageCard" data-character="mage">
+                <div class="character-top">
+                  <div class="portrait">
+                    <img src="gif/mage.gif" alt="Mage" />
+                  </div>
+                  <div class="character-meta">
+                    <div class="character-name">Mage</div>
+                    <div class="character-role">Magic DPS</div>
+                  </div>
+                  <div class="status-badge" id="mageStatus"></div>
                 </div>
-                <div class="skills-grid" id="skillsGrid"></div>
+                <div class="stats">
+                  <div class="stat-bar">
+                    <div class="stat-label">
+                      <span>HP</span>
+                      <span id="mageHpText">80/80</span>
+                    </div>
+                    <div class="bar-container">
+                      <div class="bar-fill hp-fill" id="mageHpBar" style="width: 100%"></div>
+                    </div>
+                  </div>
+                  <div class="stat-bar">
+                    <div class="stat-label">
+                      <span>MP</span>
+                      <span id="mageMpText">100/100</span>
+                    </div>
+                    <div class="bar-container">
+                      <div class="bar-fill mp-fill" id="mageMpBar" style="width: 100%"></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="attributes">
+                  <div class="attribute">
+                    ATK<strong>5</strong>
+                  </div>
+                  <div class="attribute">
+                    DEF<strong>5</strong>
+                  </div>
+                  <div class="attribute">
+                    MAG<strong>30</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div class="character-card" id="healerCard" data-character="healer">
+                <div class="character-top">
+                  <div class="portrait">
+                    <img src="gif/healer.gif" alt="Healer" />
+                  </div>
+                  <div class="character-meta">
+                    <div class="character-name">Healer</div>
+                    <div class="character-role">Support</div>
+                  </div>
+                  <div class="status-badge" id="healerStatus"></div>
+                </div>
+                <div class="stats">
+                  <div class="stat-bar">
+                    <div class="stat-label">
+                      <span>HP</span>
+                      <span id="healerHpText">100/100</span>
+                    </div>
+                    <div class="bar-container">
+                      <div class="bar-fill hp-fill" id="healerHpBar" style="width: 100%"></div>
+                    </div>
+                  </div>
+                  <div class="stat-bar">
+                    <div class="stat-label">
+                      <span>MP</span>
+                      <span id="healerMpText">80/80</span>
+                    </div>
+                    <div class="bar-container">
+                      <div class="bar-fill mp-fill" id="healerMpBar" style="width: 100%"></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="attributes">
+                  <div class="attribute">
+                    ATK<strong>8</strong>
+                  </div>
+                  <div class="attribute">
+                    DEF<strong>8</strong>
+                  </div>
+                  <div class="attribute">
+                    MAG<strong>15</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div class="character-card" id="tankCard" data-character="tank">
+                <div class="character-top">
+                  <div class="portrait">
+                    <img src="gif/tank.gif" alt="Tank" />
+                  </div>
+                  <div class="character-meta">
+                    <div class="character-name">Tank</div>
+                    <div class="character-role">Defender</div>
+                  </div>
+                  <div class="status-badge" id="tankStatus"></div>
+                </div>
+                <div class="stats">
+                  <div class="stat-bar">
+                    <div class="stat-label">
+                      <span>HP</span>
+                      <span id="tankHpText">180/180</span>
+                    </div>
+                    <div class="bar-container">
+                      <div class="bar-fill hp-fill" id="tankHpBar" style="width: 100%"></div>
+                    </div>
+                  </div>
+                  <div class="stat-bar">
+                    <div class="stat-label">
+                      <span>MP</span>
+                      <span id="tankMpText">50/50</span>
+                    </div>
+                    <div class="bar-container">
+                      <div class="bar-fill mp-fill" id="tankMpBar" style="width: 100%"></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="attributes">
+                  <div class="attribute">
+                    ATK<strong>15</strong>
+                  </div>
+                  <div class="attribute">
+                    DEF<strong>20</strong>
+                  </div>
+                  <div class="attribute">
+                    MAG<strong>5</strong>
+                  </div>
+                </div>
               </div>
             </div>
+          </div>
+
+          <div class="skills-panel" id="skillsPanel">
+            <div class="skills-header">
+              <h3 id="skillsHeader">Skills</h3>
+              <button class="close-panel" id="closeSkills">✕</button>
+            </div>
+            <div class="skills-grid" id="skillsGrid"></div>
           </div>
         </div>
 
@@ -1169,8 +1203,7 @@
           this.debuffEffects = {};
 
           // Hide overlays
-          document.getElementById("turnOverlay").style.display = "none";
-          document.body.classList.remove("overlay-active");
+          this.hideOverlay();
           document.body.classList.remove("targeting");
           document.getElementById("skillsPanel").style.display = "none";
           document.getElementById("targetSelector").style.display = "none";
@@ -1195,10 +1228,56 @@
           }
         }
 
+        showOverlay() {
+          const overlay = document.getElementById("turnOverlay");
+          overlay.style.display = "block";
+          requestAnimationFrame(() => {
+            overlay.classList.add("visible");
+          });
+          document.body.classList.add("overlay-active");
+        }
+
+        hideOverlay() {
+          const overlay = document.getElementById("turnOverlay");
+          overlay.classList.remove("visible");
+          overlay.style.display = "none";
+          document.body.classList.remove("overlay-active");
+        }
+
+        positionSkillsPanel(cardElement) {
+          const panel = document.getElementById("skillsPanel");
+          if (!cardElement || !panel) return;
+
+          panel.style.visibility = "hidden";
+          panel.classList.add("visible");
+          panel.style.display = "block";
+
+          requestAnimationFrame(() => {
+            const panelRect = panel.getBoundingClientRect();
+            const cardRect = cardElement.getBoundingClientRect();
+            let left = cardRect.right + 18;
+
+            if (left + panelRect.width > window.innerWidth - 16) {
+              left = cardRect.left - panelRect.width - 18;
+            }
+
+            left = Math.max(16, left);
+
+            let top = cardRect.top + cardRect.height / 2 - panelRect.height / 2;
+            top = Math.max(
+              16,
+              Math.min(top, window.innerHeight - panelRect.height - 16)
+            );
+
+            panel.style.left = `${left}px`;
+            panel.style.top = `${top}px`;
+            panel.style.visibility = "visible";
+          });
+        }
+
         showSkillsPanel(character) {
           const panel = document.getElementById("skillsPanel");
           const header = document.getElementById("skillsGrid");
-          const overlay = document.getElementById("turnOverlay");
 
           header.innerHTML = "";
 
@@ -1226,15 +1305,16 @@
           document.getElementById(
             "skillsHeader"
           ).textContent = `${character.name}'s Skills`;
-          overlay.style.display = "block";
-          document.body.classList.add("overlay-active");
+          this.showOverlay();
           panel.style.display = "block";
+          this.positionSkillsPanel(document.getElementById(`${character.id}Card`));
         }
 
         hideSkillsPanel() {
-          document.getElementById("turnOverlay").style.display = "none";
-          document.body.classList.remove("overlay-active");
-          document.getElementById("skillsPanel").style.display = "none";
+          this.hideOverlay();
+          const panel = document.getElementById("skillsPanel");
+          panel.classList.remove("visible");
+          panel.style.display = "none";
         }
 
         selectSkill(skill) {
