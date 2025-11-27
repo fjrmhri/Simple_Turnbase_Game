@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Celestia Clash</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <div class="game-shell">
@@ -14,26 +14,30 @@
         <label for="difficulty-select">Difficulty</label>
         <select id="difficulty-select"></select>
         <div id="modifier-container" class="modifier-container"></div>
-        <button id="start-story" class="btn primary">Start Story</button>
+        <button id="start-btn" class="btn primary">Start</button>
       </div>
     </header>
 
     <main class="content">
-      <section id="story-panel" class="panel story-panel">
-        <div class="story-visual">
-          <img id="story-portrait" alt="Speaker portrait" />
-        </div>
-        <div class="story-text">
-          <div id="story-speaker" class="story-speaker"></div>
-          <div id="story-line" class="story-line"></div>
-          <div class="story-actions">
-            <button id="skip-text" class="btn ghost">Skip Text</button>
-            <button id="next-line" class="btn secondary">Next</button>
-          </div>
-        </div>
+      <section id="start-screen" class="panel start-panel">
+        <p>Prepare your squad to stop the Elder Dragon before it escapes the summit. Configure modifiers, then begin.</p>
       </section>
 
-      <section id="battle-panel" class="panel battle-panel hidden">
+      <section id="battlefield" class="panel battle-panel hidden">
+        <div id="storyOverlay" class="story-panel hidden">
+          <div class="story-portrait-wrapper">
+            <img id="storyPortrait" alt="Story portrait" />
+          </div>
+          <div class="story-dialog-wrapper">
+            <div id="storyName" class="story-name"></div>
+            <div id="storyText" class="story-text"></div>
+            <div class="story-controls">
+              <button id="storyNext" class="btn secondary">Next</button>
+              <button id="storySkip" class="btn ghost">Skip</button>
+            </div>
+          </div>
+        </div>
+
         <div class="battle-layout">
           <div class="battle-header">
             <div class="turn-order">
@@ -71,8 +75,6 @@
     </main>
   </div>
 
-  <script type="module" src="config.js"></script>
-  <script type="module" src="story.js"></script>
-  <script type="module" src="game.js"></script>
+  <script src="game.js"></script>
 </body>
 </html>

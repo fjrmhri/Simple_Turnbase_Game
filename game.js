@@ -1,16 +1,126 @@
-import { CONFIG } from './config.js';
+const DIFFICULTIES = {
+  easy: { label: 'Easy', heroHp: 1.1, heroAtk: 1.05, bossHp: 0.9, bossAtk: 0.9, mp: 1.05 },
+  normal: { label: 'Normal', heroHp: 1, heroAtk: 1, bossHp: 1, bossAtk: 1, mp: 1 },
+  hard: { label: 'Hard', heroHp: 0.95, heroAtk: 0.95, bossHp: 1.2, bossAtk: 1.1, mp: 0.9 }
+};
 
-class GameEngine {
+const MODIFIERS = [
+  { id: 'glass', label: 'Glass Cannon', heroHp: 0.9, heroAtk: 1.15 },
+  { id: 'mana', label: 'Mana Drought', mp: 0.75 },
+  { id: 'nohealer', label: 'No Healer', disableHero: 'healer' }
+];
+
+const clone = (obj) => JSON.parse(JSON.stringify(obj));
+
+const HERO_TEMPLATES = [
+  {
+    id: 'tank',
+    name: 'Aegis',
+    maxHp: 520,
+    maxMp: 80,
+    atk: 46,
+    def: 22,
+    mag: 16,
+    spd: 14,
+    skills: [
+      { id: 'strike', name: 'Shield Slam', type: 'physical', power: 1, cost: 5, target: 'boss', description: 'Solid blow with shield.' },
+      { id: 'guard', name: 'Bulwark', type: 'guard', power: 0.35, cost: 10, target: 'team', duration: 1, description: 'Reduce team damage this turn.' },
+      { id: 'break', name: 'Armor Break', type: 'debuff', debuff: { defDown: 0.2, duration: 2 }, power: 0.9, cost: 12, target: 'boss', cooldown: 2, description: 'Lower boss defense.' },
+      { id: 'fortify', name: 'Fortify', type: 'buff', buff: { guard: 0.5, duration: 1 }, power: 0, cost: 8, target: 'ally', cooldown: 2, description: 'Guard self strongly.' }
+    ]
+  },
+  {
+    id: 'soldier',
+    name: 'Vale',
+    maxHp: 440,
+    maxMp: 90,
+    atk: 60,
+    def: 16,
+    mag: 18,
+    spd: 20,
+    skills: [
+      { id: 'slash', name: 'Quick Slash', type: 'physical', power: 1, cost: 6, target: 'boss' },
+      { id: 'lunge', name: 'Piercing Lunge', type: 'physical', power: 1.25, cost: 14, target: 'boss', cooldown: 2, description: 'Higher damage strike.' },
+      { id: 'rally', name: 'Rally', type: 'buff', buff: { atkUp: 0.15, duration: 2 }, power: 0, cost: 12, target: 'team', cooldown: 3, description: 'Boost team attack.' }
+    ]
+  },
+  {
+    id: 'mage',
+    name: 'Lyra',
+    maxHp: 360,
+    maxMp: 120,
+    atk: 28,
+    def: 12,
+    mag: 70,
+    spd: 18,
+    skills: [
+      { id: 'bolt', name: 'Arcane Bolt', type: 'magic', power: 1.05, cost: 10, target: 'boss' },
+      { id: 'nova', name: 'Star Nova', type: 'magic', power: 0.95, cost: 16, target: 'boss', cooldown: 2 },
+      { id: 'veil', name: 'Veil', type: 'buff', buff: { dmgDown: 0.2, duration: 2 }, power: 0, cost: 12, target: 'team' }
+    ]
+  },
+  {
+    id: 'healer',
+    name: 'Seren',
+    maxHp: 380,
+    maxMp: 140,
+    atk: 22,
+    def: 14,
+    mag: 55,
+    spd: 16,
+    skills: [
+      { id: 'heal', name: 'Radiant Heal', type: 'heal', power: 1.05, cost: 12, target: 'ally' },
+      { id: 'groupheal', name: 'Soothing Light', type: 'heal', power: 0.85, cost: 18, target: 'team', cooldown: 2 },
+      { id: 'bless', name: 'Blessing', type: 'buff', buff: { atkUp: 0.18, duration: 2 }, power: 0, cost: 12, target: 'team' }
+    ]
+  }
+];
+
+const BOSS_TEMPLATE = {
+  id: 'boss',
+  name: 'Elder Dragon',
+  maxHp: 2600,
+  maxMp: 220,
+  atk: 68,
+  def: 22,
+  mag: 52,
+  spd: 20,
+  phases: [
+    { threshold: 0.7, weights: { claw: 3, flame: 2, tail: 1 } },
+    { threshold: 0.4, weights: { claw: 2, flame: 3, roar: 2 } },
+    { threshold: 0, weights: { flame: 2, roar: 3, crush: 2 } }
+  ],
+  skills: {
+    claw: { id: 'claw', name: 'Rending Claw', type: 'physical', power: 2.4, cost: 12, target: 'random' },
+    tail: { id: 'tail', name: 'Tail Swipe', type: 'physical', power: 1.6, cost: 14, target: 'team' },
+    flame: { id: 'flame', name: 'Searing Flame', type: 'magic', power: 1.55, cost: 16, target: 'team', dot: { amount: 22, duration: 2 } },
+    roar: { id: 'roar', name: 'Tyrant Roar', type: 'debuff', power: 1.35, cost: 18, target: 'team', debuff: { defDown: 0.18, duration: 2 } },
+    crush: { id: 'crush', name: 'Crushing Dive', type: 'physical', power: 2.8, cost: 20, target: 'weakest' }
+  }
+};
+
+const STORY_SCENES = [
+  { speaker: 'Narrator', charId: null, text: 'At the peak of Celestia, an ancient dragon awakens from its long slumber...' },
+  { speaker: 'Soldier', charId: 'soldier', text: 'We have no other choice. If this dragon escapes, the city below will be destroyed.' },
+  { speaker: 'Mage', charId: 'mage', text: 'I can bend its flames, but I need time. Protect me.' },
+  { speaker: 'Healer', charId: 'healer', text: 'Do not die for nothing. As long as I stand, you will keep breathing.' },
+  { speaker: 'Tank', charId: 'tank', text: 'Let it focus on me. Finish it from a safe distance.' },
+  { speaker: 'Dragon', charId: 'dragon', text: 'You dare challenge the guardian of the skies...' },
+  { speaker: 'Narrator', charId: null, text: 'Steel meets flame as the battle begins!' }
+];
+
+class Game {
   constructor() {
-    this.config = CONFIG;
-    this.difficultyId = 'normal';
-    this.modifiers = [];
+    this.mode = 'setup';
     this.turnOrder = [];
     this.turnIndex = 0;
-    this.mode = 'story';
-    this.stats = { turns: 0, damage: {}, healing: {}, skillUse: {} };
+    this.stats = { turns: 0, damage: {}, healing: {} };
+    this.storyIndex = 0;
+    this.isTyping = false;
+    this.typingInterval = null;
     this.bindUI();
-    this.registerStoryHooks();
+    this.renderOptions();
+    this.resetState();
   }
 
   bindUI() {
@@ -21,60 +131,141 @@ class GameEngine {
     this.bossIntent = document.getElementById('boss-intent');
     document.getElementById('next-turn').addEventListener('click', () => this.endPlayerTurn());
     document.getElementById('restart').addEventListener('click', () => window.location.reload());
+    document.getElementById('play-again').addEventListener('click', () => window.location.reload());
+    document.getElementById('start-btn').addEventListener('click', () => this.startStory());
+    document.getElementById('storyNext').addEventListener('click', () => this.handleNextStory());
+    document.getElementById('storySkip').addEventListener('click', () => this.skipStory());
   }
 
-  registerStoryHooks() {
-    document.addEventListener('story:ready', (e) => {
-      this.difficultyId = e.detail.difficulty;
-      this.modifiers = e.detail.modifiers;
-      this.setupState();
+  renderOptions() {
+    const diffSelect = document.getElementById('difficulty-select');
+    Object.entries(DIFFICULTIES).forEach(([id, diff]) => {
+      const opt = document.createElement('option');
+      opt.value = id;
+      opt.textContent = diff.label;
+      diffSelect.appendChild(opt);
     });
-    document.addEventListener('story:start-battle', () => {
-      this.startBattle();
+    diffSelect.value = 'normal';
+    const modWrap = document.getElementById('modifier-container');
+    MODIFIERS.forEach((mod) => {
+      const label = document.createElement('label');
+      label.className = 'modifier-pill';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.value = mod.id;
+      label.appendChild(cb);
+      label.appendChild(document.createTextNode(' ' + mod.label));
+      modWrap.appendChild(label);
     });
   }
 
-  setupState() {
-    const diff = this.config.difficulties[this.difficultyId] || this.config.difficulties.normal;
-    const heroMods = this.modifiers.map((id) => this.config.modifiers.find((m) => m.id === id));
-    this.heroes = this.config.heroes
-      .filter((h) => !heroMods.some((m) => m?.disableHero === h.id))
-      .map((h) => ({
-        ...h,
-        hp: Math.round(h.maxHp * diff.heroHp * (heroMods.reduce((m, v) => m * (v?.heroHp || 1), 1))),
-        maxHp: Math.round(h.maxHp * diff.heroHp * (heroMods.reduce((m, v) => m * (v?.heroHp || 1), 1))),
-        atk: Math.round(h.atk * diff.heroAtk * (heroMods.reduce((m, v) => m * (v?.heroAtk || 1), 1))),
-        mp: Math.round(h.maxMp * diff.mp),
-        maxMp: Math.round(h.maxMp * diff.mp),
-        status: {},
-        alive: true
-      }));
-    const bossAtkMulti = diff.bossAtk;
-    const bossHpMulti = diff.bossHp;
-    const boss = this.config.boss;
+  getDifficulty() {
+    const select = document.getElementById('difficulty-select');
+    return select.value || 'normal';
+  }
+
+  getModifiers() {
+    const wrap = document.getElementById('modifier-container');
+    return Array.from(wrap.querySelectorAll('input:checked')).map((n) => n.value);
+  }
+
+  resetState() {
+    const diff = DIFFICULTIES[this.getDifficulty()] || DIFFICULTIES.normal;
+    const mods = this.getModifiers().map((id) => MODIFIERS.find((m) => m.id === id));
+    this.heroes = HERO_TEMPLATES.filter((h) => !mods.some((m) => m?.disableHero === h.id)).map((h) => ({
+      ...clone(h),
+      hp: Math.round(h.maxHp * diff.heroHp * mods.reduce((m, v) => m * (v?.heroHp || 1), 1)),
+      maxHp: Math.round(h.maxHp * diff.heroHp * mods.reduce((m, v) => m * (v?.heroHp || 1), 1)),
+      atk: Math.round(h.atk * diff.heroAtk * mods.reduce((m, v) => m * (v?.heroAtk || 1), 1)),
+      mp: Math.round(h.maxMp * diff.mp * mods.reduce((m, v) => m * (v?.mp || 1), 1)),
+      maxMp: Math.round(h.maxMp * diff.mp * mods.reduce((m, v) => m * (v?.mp || 1), 1)),
+      status: {},
+      alive: true
+    }));
+    const boss = BOSS_TEMPLATE;
     this.boss = {
-      ...boss,
-      hp: Math.round(boss.maxHp * bossHpMulti),
-      maxHp: Math.round(boss.maxHp * bossHpMulti),
-      atk: Math.round(boss.atk * bossAtkMulti),
+      ...clone(boss),
+      hp: Math.round(boss.maxHp * diff.bossHp),
+      maxHp: Math.round(boss.maxHp * diff.bossHp),
+      atk: Math.round(boss.atk * diff.bossAtk),
       mp: Math.round(boss.maxMp * diff.mp),
       maxMp: Math.round(boss.maxMp * diff.mp),
       status: {},
       phaseIndex: 0,
       telegraph: null
     };
-    this.mode = 'story';
-    this.resetStats();
+    this.stats = { turns: 0, damage: {}, healing: {} };
+    this.turnOrder = [];
+    this.turnIndex = 0;
     this.renderParty();
     this.renderBoss();
-    this.log('Ready for deployment.');
   }
 
-  resetStats() {
-    this.stats = { turns: 0, damage: {}, healing: {}, skillUse: {} };
+  startStory() {
+    document.getElementById('start-screen').classList.add('hidden');
+    document.getElementById('battlefield').classList.remove('hidden');
+    this.resetState();
+    this.mode = 'story';
+    this.storyIndex = 0;
+    this.showStoryScene();
   }
 
-  startBattle() {
+  showStoryScene() {
+    const overlay = document.getElementById('storyOverlay');
+    overlay.classList.remove('hidden');
+    const scene = STORY_SCENES[this.storyIndex];
+    if (!scene) return this.endStoryAndStartBattle();
+    const portrait = document.getElementById('storyPortrait');
+    if (scene.charId) {
+      portrait.src = `gif/${scene.charId}.gif`;
+      portrait.classList.remove('hidden');
+    } else {
+      portrait.classList.add('hidden');
+    }
+    document.getElementById('storyName').textContent = scene.speaker;
+    document.getElementById('storyText').textContent = '';
+    this.startTypewriter(scene.text);
+  }
+
+  startTypewriter(text) {
+    clearInterval(this.typingInterval);
+    this.isTyping = true;
+    let idx = 0;
+    this.typingInterval = setInterval(() => {
+      if (idx >= text.length) {
+        clearInterval(this.typingInterval);
+        this.isTyping = false;
+        return;
+      }
+      document.getElementById('storyText').textContent += text[idx];
+      idx += 1;
+    }, 20);
+  }
+
+  handleNextStory() {
+    const scene = STORY_SCENES[this.storyIndex];
+    const textEl = document.getElementById('storyText');
+    if (this.isTyping) {
+      clearInterval(this.typingInterval);
+      this.isTyping = false;
+      textEl.textContent = scene.text;
+      return;
+    }
+    this.storyIndex += 1;
+    if (this.storyIndex >= STORY_SCENES.length) {
+      this.endStoryAndStartBattle();
+      return;
+    }
+    this.showStoryScene();
+  }
+
+  skipStory() {
+    clearInterval(this.typingInterval);
+    this.endStoryAndStartBattle();
+  }
+
+  endStoryAndStartBattle() {
+    document.getElementById('storyOverlay').classList.add('hidden');
     this.mode = 'battle';
     this.buildTurnOrder();
     this.turnIndex = 0;
@@ -138,20 +329,18 @@ class GameEngine {
     this.stats.turns += 1;
     this.resolveDot();
     this.buildTurnOrder();
-    setTimeout(() => this.startTurn(), 400);
+    setTimeout(() => this.startTurn(), 300);
   }
 
   applyEndOfTurnRegen() {
-    const diff = this.config.difficulties[this.difficultyId];
-    const modMp = this.modifiers
-      .map((id) => this.config.modifiers.find((m) => m.id === id))
-      .reduce((a, m) => a * (m?.mp || 1), 1);
+    const diff = DIFFICULTIES[this.getDifficulty()] || DIFFICULTIES.normal;
+    const modMp = this.getModifiers().map((id) => MODIFIERS.find((m) => m.id === id)).reduce((a, m) => a * (m?.mp || 1), 1);
     this.heroes.forEach((h) => {
       if (!h.alive) return;
-      const regen = Math.round(this.config.manaRegenHero * (diff?.mp || 1) * modMp);
+      const regen = Math.round(3 * (diff?.mp || 1) * modMp);
       h.mp = Math.min(h.maxMp, h.mp + regen);
     });
-    const bossRegen = Math.round(this.config.manaRegenBoss * (diff?.mp || 1));
+    const bossRegen = Math.round(4 * (diff?.mp || 1));
     this.boss.mp = Math.min(this.boss.maxMp, this.boss.mp + bossRegen);
     this.renderParty();
     this.renderBoss();
@@ -189,18 +378,15 @@ class GameEngine {
   }
 
   computeDefense(target) {
-    const baseDef = target.id === 'boss' ? this.boss.def : target.def;
+    const baseDef = target.def || (target.id === 'boss' ? this.boss.def : 0);
     let modifier = 1;
-    if (target.status?.defDown) {
-      modifier -= target.status.defDown.amount;
-    }
+    if (target.status?.defDown) modifier -= target.status.defDown.amount;
     return Math.max(1, Math.round(baseDef * modifier));
   }
 
   applyHeal(source, target, skill) {
-    const power = skill.power || 0.5;
-    const base = target.maxHp * 0.35;
-    const amount = Math.round(base * power);
+    const ratio = skill.target === 'team' ? 0.22 : 0.35;
+    const amount = Math.round(target.maxHp * ratio * (skill.power || 1));
     target.hp = Math.min(target.maxHp, target.hp + amount);
     this.stats.healing[source.id] = (this.stats.healing[source.id] || 0) + amount;
     return amount;
@@ -209,7 +395,6 @@ class GameEngine {
   synergyMultiplier(source, target, isMagic) {
     let multi = 1;
     if (!isMagic && target.status?.defDown) multi += 0.15;
-    if (source.id === 'tank' && this.boss.status?.dot && target.id === 'boss') multi += 0.1;
     return multi;
   }
 
@@ -217,32 +402,19 @@ class GameEngine {
     const isMagic = skill.type === 'magic';
     const attackStat = isMagic ? source.mag : source.atk;
     const defense = this.computeDefense(target);
-    const base = Math.max(6, attackStat - Math.round(defense * 0.35));
+    const base = Math.max(8, attackStat * (skill.power || 1) - Math.round(defense * 0.25));
     const buffMulti = 1 + (source.status?.atkUp?.amount || 0) + (isMagic ? source.status?.magUp?.amount || 0 : 0);
     const dmgDown = target.status?.dmgDown?.amount || 0;
     const guardCut = target.status?.guard?.amount || 0;
     const guardTeam = target.status?.guardTeam?.amount || 0;
     const synergy = this.synergyMultiplier(source, target, isMagic);
-    const damage = Math.max(8, Math.round(base * skill.power * buffMulti * synergy * (1 - dmgDown) * (1 - guardCut - guardTeam)));
+    const damage = Math.max(10, Math.round(base * buffMulti * synergy * (1 - dmgDown) * (1 - guardCut - guardTeam)));
     target.hp = Math.max(0, target.hp - damage);
     if (target.id !== 'boss') {
       this.stats.damage[source.id] = (this.stats.damage[source.id] || 0) + damage;
       if (target.hp <= 0) target.alive = false;
     }
     return damage;
-  }
-
-  updateStatus(target, changes) {
-    target.status = target.status || {};
-    Object.entries(changes).forEach(([k, val]) => {
-      target.status[k] = { amount: val[k] ?? val.amount ?? val, duration: val.duration ?? val[k]?.duration ?? 1 };
-    });
-  }
-
-  spendResource(user, skill) {
-    if (user.mp < (skill.cost || 0)) return false;
-    user.mp -= skill.cost || 0;
-    return true;
   }
 
   cooldownTick(unit) {
@@ -263,7 +435,7 @@ class GameEngine {
     const phase = this.boss.phases[this.boss.phaseIndex];
     const weights = phase?.weights || { claw: 1 };
     const entries = Object.entries(weights);
-    const total = entries.reduce((s, [k, w]) => s + w, 0);
+    const total = entries.reduce((s, [_, w]) => s + w, 0);
     let pick = Math.random() * total;
     for (const [key, weight] of entries) {
       if ((pick -= weight) <= 0) return this.boss.skills[key];
@@ -275,23 +447,15 @@ class GameEngine {
     const hpPct = this.boss.hp / this.boss.maxHp;
     const idx = this.boss.phases.findIndex((p) => hpPct <= p.threshold);
     if (idx !== -1) this.boss.phaseIndex = idx;
-    const phase = this.boss.phases[this.boss.phaseIndex];
-    if (phase?.telegraph) {
-      this.boss.telegraph = phase.telegraph;
-      this.bossIntent.textContent = 'Next: ' + phase.telegraph.text;
-      this.log(phase.telegraph.text);
-    } else {
-      this.bossIntent.textContent = '';
-    }
   }
 
   useSkill(user, skill) {
-    if (!this.spendResource(user, skill)) {
+    if (user.mp < (skill.cost || 0)) {
       this.log(`${user.name} lacks MP.`);
       return;
     }
+    user.mp -= skill.cost || 0;
     if (skill.cooldown) skill.currentCd = skill.cooldown;
-    this.stats.skillUse[user.id] = (this.stats.skillUse[user.id] || 0) + 1;
     const targets = this.resolveTargets(skill);
     targets.forEach((target) => {
       let amount = 0;
@@ -312,16 +476,17 @@ class GameEngine {
           this.log(`${user.name} braces the team.`);
           break;
         case 'debuff':
-          if (skill.debuff?.defDown) {
-            target.status.defDown = { amount: skill.debuff.defDown, duration: skill.debuff.duration };
-          }
-          this.log(`${user.name} weakens ${target.name}.`);
+          target.status = target.status || {};
+          if (skill.debuff?.defDown) target.status.defDown = { amount: skill.debuff.defDown, duration: skill.debuff.duration };
           if (skill.power) {
             amount = this.applyDamage(user, target, skill);
             this.log(`${target.name} also takes ${amount} damage.`);
+          } else {
+            this.log(`${user.name} weakens ${target.name}.`);
           }
           break;
         case 'buff':
+          target.status = target.status || {};
           if (skill.buff?.guard) target.status.guard = { amount: skill.buff.guard, duration: skill.buff.duration };
           if (skill.buff?.atkUp) target.status.atkUp = { amount: skill.buff.atkUp, duration: skill.buff.duration };
           if (skill.buff?.dmgDown) target.status.dmgDown = { amount: skill.buff.dmgDown, duration: skill.buff.duration };
@@ -459,13 +624,13 @@ class GameEngine {
 
   finishBattle(victory) {
     this.mode = 'result';
-    document.getElementById('battle-panel').classList.add('hidden');
-    const resultId = victory ? 'victory' : 'defeat';
-    window.storyController.showResult(resultId);
-    this.renderResults(victory);
+    document.getElementById('battlefield').classList.add('hidden');
+    document.getElementById('result-panel').classList.remove('hidden');
+    document.getElementById('result-title').textContent = victory ? 'Victory!' : 'Defeat';
+    this.renderResults();
   }
 
-  renderResults(victory) {
+  renderResults() {
     const wrap = document.getElementById('result-details');
     wrap.innerHTML = '';
     const turns = document.createElement('div');
@@ -489,4 +654,6 @@ class GameEngine {
   }
 }
 
-window.gameEngine = new GameEngine();
+document.addEventListener('DOMContentLoaded', () => {
+  window.game = new Game();
+});
