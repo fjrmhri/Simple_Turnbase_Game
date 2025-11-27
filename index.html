@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Celestia Clash - Turn Battle</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="game-shell">
+      <div class="start-screen" id="startScreen">
+        <div class="start-panel">
+          <h1>Celestia Clash</h1>
+          <p>
+            Turn-based RPG demo. Command your squad and break the dragon's fury.
+          </p>
+          <div class="settings-card">
+            <div class="setting-group">
+              <div class="setting-label">Difficulty</div>
+              <div class="setting-options" id="difficultyOptions">
+                <button class="option-button active" data-difficulty="normal">Normal</button>
+                <button class="option-button" data-difficulty="easy">Easy</button>
+                <button class="option-button" data-difficulty="hard">Hard</button>
+              </div>
+            </div>
+          </div>
+          <button class="start-button" id="startButton">Start</button>
+        </div>
+      </div>
+
+      <div class="story-screen hidden" id="storyScreen">
+        <div class="story-panel" id="storyPanel">
+          <div class="story-portrait-wrapper">
+            <img id="storyPortrait" alt="Story portrait" />
+          </div>
+          <div class="story-dialog-wrapper">
+            <div id="storyName" class="story-name"></div>
+            <div id="storyText" class="story-text"></div>
+            <div class="story-controls">
+              <button id="storyPause" class="option-button">Pause</button>
+              <button id="storySkip" class="start-button">Skip</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="battle-field hidden" id="battleScreen">
+        <div class="nebula"></div>
+        <div class="battle-layer">
+          <div class="turn-order">
+            <div class="turn-track">
+              <div class="turn-line"></div>
+              <div class="turn-nodes" id="turnNodes"></div>
+            </div>
+          </div>
+
+          <div class="middle-layer">
+            <div class="log-panel">
+              <h3 style="text-align: center">Battle Log</h3>
+              <div class="log-body" id="logBody"></div>
+            </div>
+            <div class="arena-center">
+              <div class="dragon-area">
+                <div class="boss-card" id="bossCard">
+                  <div class="boss-top">
+                    <div class="boss-avatar">
+                      <img src="gif/dragon.gif" alt="Dragon" />
+                    </div>
+                    <div class="boss-meta">
+                      <h2>Obsidian Dragon</h2>
+                      <div class="meter">
+                        <div class="meter-label">
+                          <span>HP</span>
+                          <span id="bossHpText">--</span>
+                        </div>
+                        <div class="meter-bar">
+                          <div class="meter-fill hp-fill" id="bossHpBar"></div>
+                        </div>
+                      </div>
+                      <div class="meter">
+                        <div class="meter-label">
+                          <span>MP</span>
+                          <span id="bossMpText">--</span>
+                        </div>
+                        <div class="meter-bar">
+                          <div class="meter-fill mp-fill" id="bossMpBar"></div>
+                        </div>
+                      </div>
+                      <div
+                        class="status-tag"
+                        id="bossStatus"
+                        style="display: none"
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="footer-row">
+            <div class="hero-row" id="heroRow"></div>
+            <div class="skill-bar" id="skillBar">
+              <div class="skill-buttons" id="skillButtons"></div>
+              <div class="skill-info" id="skillInfo" style="display: none"></div>
+              <div class="waiting-text" id="waitingText">Waiting...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="target-layer" id="targetLayer">
+        <div class="target-window">
+          <div class="target-header">
+            <h3>Select a target</h3>
+            <button class="target-cancel" id="targetCancel">✕</button>
+          </div>
+          <div class="target-options" id="targetOptions"></div>
+        </div>
+      </div>
+
+      <div class="game-over" id="gameOver">
+        <div class="game-over-card">
+          <h2 id="gameOverTitle" class="victory">Victory</h2>
+          <p id="gameOverText">Your team stands triumphant!</p>
+          <button class="restart" id="restart">Restart</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="game.js"></script>
+  </body>
+</html>
