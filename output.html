@@ -431,7 +431,7 @@
 
       .stat-grid {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(4, 1fr);
         gap: 6px;
         margin-top: 8px;
       }
@@ -780,6 +780,7 @@
           atk: 34,
           def: 14,
           mag: 6,
+          spd: 12,
           skills: [
             {
               id: "basicSlash",
@@ -830,6 +831,7 @@
           atk: 10,
           def: 10,
           mag: 40,
+          spd: 14,
           skills: [
             {
               id: "arcaneBolt",
@@ -880,6 +882,7 @@
           atk: 12,
           def: 16,
           mag: 24,
+          spd: 10,
           skills: [
             {
               id: "singleHeal",
@@ -887,7 +890,7 @@
               cost: 14,
               target: "ally",
               type: "heal",
-              power: 0.45,
+              power: 1.0,
               description: "Restore a large amount of HP to one ally.",
             },
             {
@@ -896,7 +899,7 @@
               cost: 18,
               target: "allies",
               type: "heal",
-              power: 0.25,
+              power: 0.7,
               description: "Restore moderate HP to all allies.",
             },
             {
@@ -927,6 +930,7 @@
           atk: 18,
           def: 28,
           mag: 8,
+          spd: 8,
           skills: [
             {
               id: "bash",
@@ -979,6 +983,7 @@
         atk: 42,
         def: 24,
         mag: 36,
+        spd: 11,
         status: {},
         skills: [
           {
@@ -1034,10 +1039,11 @@
             hp: bossConfig.maxHp,
             mp: bossConfig.maxMp,
           };
-          this.turnOrder = ["soldier", "mage", "healer", "tank", "boss"];
+          this.turnOrder = [];
           this.turnIndex = 0;
           this.state = "menu";
           this.pendingSkill = null;
+          this.bossWindupSkill = null;
           this.logEl = document.getElementById("logBody");
           this.heroRow = document.getElementById("heroRow");
           this.skillButtons = document.getElementById("skillButtons");
@@ -1049,9 +1055,11 @@
           this.targetCancel = document.getElementById("targetCancel");
           this.bossCard = document.getElementById("bossCard");
           this.bossEnragedNotified = false;
+          this.bossEnraged = false;
           this.targeting = false;
           this.bindMenu();
           this.renderHeroes();
+          this.rebuildTurnOrder();
           this.updateUI();
         }
 
@@ -1091,11 +1099,14 @@
           this.state = "playing";
           this.pendingSkill = null;
           this.bossEnragedNotified = false;
+          this.bossEnraged = false;
+          this.bossWindupSkill = null;
           this.targeting = false;
           this.closeTargetSelect();
           document.getElementById("gameOver").style.display = "none";
           this.logEl.innerHTML = "";
           this.renderHeroes();
+          this.rebuildTurnOrder();
           this.updateUI();
           this.startTurn();
         }
@@ -1127,6 +1138,7 @@
                 <div class="stat-chip">ATK<strong>${hero.atk}</strong></div>
                 <div class="stat-chip">DEF<strong>${hero.def}</strong></div>
                 <div class="stat-chip">MAG<strong>${hero.mag}</strong></div>
+                <div class="stat-chip">SPD<strong>${hero.spd}</strong></div>
               </div>
             `;
             this.heroRow.appendChild(card);
@@ -1178,6 +1190,14 @@
               card.classList.remove("active");
             }
           });
+          this.renderTurnNodes();
+        }
+
+        rebuildTurnOrder() {
+          const livingUnits = [...this.heroes, this.boss].filter((u) => u.hp > 0);
+          livingUnits.sort((a, b) => (b.spd || 10) - (a.spd || 10));
+          this.turnOrder = livingUnits.map((u) => u.id);
+          this.turnIndex = 0;
           this.renderTurnNodes();
         }
 
@@ -1308,26 +1328,43 @@
         applyDurations() {
           const decay = (status) => {
             Object.keys(status).forEach((k) => {
+              // DOT is decayed in resolveDot to ensure it ticks for its full duration
+              if (k === "dot") return;
               if (status[k] && typeof status[k].duration === "number") {
                 status[k].duration -= 1;
                 if (status[k].duration <= 0) delete status[k];
               }
             });
           };
-          this.heroes.forEach((h) => decay(h.status));
+          this.heroes.forEach((h) => decay(h.status || {}));
           decay(this.boss.status || {});
         }
 
+        applyEndOfTurnRegen() {
+          this.heroes.forEach((h) => {
+            if (h.hp > 0) {
+              const regen = 3;
+              h.mp = Math.min(h.maxMp, h.mp + regen);
+            }
+          });
+          this.boss.mp = Math.min(this.boss.maxMp, this.boss.mp + 4);
+        }
+
         computeDefense(target) {
+          const baseDef = target.id === "boss" ? this.boss.def : target.def;
           let modifier = 1;
-          if (target.status.defDown) modifier += target.status.defDown.amount;
-          return Math.max(0.1, (target.def || this.boss.def) * modifier);
+
+          if (target.status?.defDown) {
+            modifier -= target.status.defDown.amount;
+          }
+
+          return Math.max(1, Math.round(baseDef * modifier));
         }
 
         applyDamage(source, target, skill) {
           const isMagic = skill.type === "magic";
           const attackStat = isMagic ? source.mag : source.atk;
-          const defense = target.id === "boss" ? this.boss.def : target.def;
+          const defense = this.computeDefense(target);
           let base = Math.max(0, attackStat - defense * 0.5);
           const power = skill.power || 1;
           let buffMulti = 1;
@@ -1338,11 +1375,21 @@
           if (target.status.dmgDown) buffMulti -= target.status.dmgDown.amount;
           const guardCut = target.status.guard?.amount || 0;
           const guardTeam = target.status.guardTeam?.amount || 0;
+          let synergyMulti = 1;
+          if (!isMagic && target.status?.defDown) synergyMulti += 0.15;
+          if (source.id === "tank" && this.boss.status?.dot && target.id === "boss")
+            synergyMulti += 0.1;
           const enrageMultiplier =
             source.id === "boss" && this.isDragonEnraged() ? 2 : 1;
           const damage = Math.max(
             8,
-            Math.round(base * power * buffMulti * (1 - guardCut - guardTeam))
+            Math.round(
+              base *
+                power *
+                buffMulti *
+                synergyMulti *
+                (1 - guardCut - guardTeam)
+            )
           );
           const finalDamage = Math.max(
             8,
@@ -1371,8 +1418,9 @@
         }
 
         applyHeal(source, target, skill) {
-          const power = skill.power || 0.3;
-          const amount = Math.round(source.mag * 2 * power);
+          const power = skill.power || 0.5;
+          const base = target.maxHp * 0.35;
+          const amount = Math.round(base * power);
           target.hp = Math.min(target.maxHp, target.hp + amount);
           return amount;
         }
@@ -1441,10 +1489,15 @@
         }
 
         resolveDot() {
-          if (this.boss.status.dot) {
+          if (this.boss.status?.dot) {
             const dot = this.boss.status.dot;
             this.boss.hp = Math.max(0, this.boss.hp - dot.amount);
             this.log(`Burning embers scorch the dragon for ${dot.amount}.`);
+            dot.duration -= 1;
+            if (dot.duration <= 0) {
+              delete this.boss.status.dot;
+              this.log("The flames die down around the dragon.");
+            }
           }
         }
 
@@ -1457,7 +1510,21 @@
           }
 
           this.isDragonEnraged();
-          const choice = this.chooseDragonSkill();
+          let choice = this.bossWindupSkill;
+
+          if (!choice) {
+            choice = this.chooseDragonSkill();
+            if (this.bossEnraged && choice.pattern === "aoe") {
+              this.log("The dragon inhales sharply, flames gathering in its throat!");
+              this.bossWindupSkill = choice;
+              this.advanceTurn();
+              return;
+            }
+          } else {
+            this.log("The dragon unleashes its stored power in a blazing roar!");
+            this.bossWindupSkill = null;
+          }
+
           boss.mp = Math.max(0, boss.mp - choice.cost);
 
           if (choice.pattern === "aoe") {
@@ -1505,10 +1572,25 @@
         }
 
         chooseDragonSkill() {
-          const available = this.boss.skills.filter(
-            (s) => s.cost === 0 || this.boss.mp >= s.cost
-          );
-          const pool = available.length ? available : [this.boss.skills[0]];
+          const enraged = this.isDragonEnraged() || this.bossEnraged;
+          const weightedSkills = (enraged
+            ? this.boss.skills.map((s) => ({
+                ...s,
+                weight:
+                  s.id === "cinderWave"
+                    ? (s.weight || 1) + 2
+                    : s.id === "fieryRend"
+                    ? (s.weight || 1) + 1
+                    : s.id === "obliterate"
+                    ? (s.weight || 1) + 1
+                    : s.weight || 1,
+              }))
+            : this.boss.skills
+          ).filter((s) => s.cost === 0 || this.boss.mp >= s.cost);
+
+          const pool = weightedSkills.length
+            ? weightedSkills
+            : [this.boss.skills[0]];
           const weighted = [];
           pool.forEach((skill) => {
             const weight = skill.weight || 1;
@@ -1541,11 +1623,19 @@
             this.log(`${this.boss.name} is enraged! Its damage surges.`);
             this.bossEnragedNotified = true;
           }
+          if (enraged) this.bossEnraged = true;
           return enraged;
         }
 
         advanceTurn() {
-          this.turnIndex = (this.turnIndex + 1) % this.turnOrder.length;
+          const nextIndex = (this.turnIndex + 1) % this.turnOrder.length;
+          this.applyEndOfTurnRegen();
+          if (nextIndex === 0) {
+            this.rebuildTurnOrder();
+          } else {
+            this.turnIndex = nextIndex;
+          }
+          this.updateUI();
           setTimeout(() => this.startTurn(), 600);
         }
 
@@ -1561,12 +1651,15 @@
             "bossMpText"
           ).textContent = `${this.boss.mp}/${this.boss.maxMp}`;
           const bossStatus = document.getElementById("bossStatus");
-          bossStatus.style.display =
-            this.boss.status && Object.keys(this.boss.status).length
-              ? "inline-block"
-              : "none";
-          bossStatus.textContent =
-            this.boss.status && this.boss.status.dot ? "Burning" : "";
+          const bossLabels = [];
+          if (this.boss.status?.dot)
+            bossLabels.push(`Burning (${this.boss.status.dot.duration})`);
+          if (this.boss.status?.defDown)
+            bossLabels.push(`DEF↓ (${this.boss.status.defDown.duration})`);
+          if (this.boss.status?.taunt)
+            bossLabels.push(`Provoked (${this.boss.status.taunt.duration})`);
+          bossStatus.style.display = bossLabels.length ? "inline-block" : "none";
+          bossStatus.textContent = bossLabels.join(" · ");
 
           this.heroes.forEach((h) => {
             const hpPct = (h.hp / h.maxHp) * 100;
@@ -1586,6 +1679,7 @@
             if (h.status.guard) labels.push("Guard");
             if (h.status.guardTeam) labels.push("Shielded");
             if (h.status.atkDown) labels.push("ATK↓");
+            if (h.status.defDown) labels.push("DEF↓");
             status.textContent = labels.join(" · ");
             status.style.display = labels.length ? "inline-block" : "none";
           });
