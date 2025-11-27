@@ -41,29 +41,25 @@
           linear-gradient(135deg, #0b1021 0%, #0f172e 50%, #0a1030 100%);
         color: var(--text-main);
         min-height: 100vh;
-        overflow: hidden;
+        padding: 24px;
+        overflow-x: hidden;
       }
 
       .page-shell {
-        width: 100%;
-        min-height: 100vh;
-        position: relative;
+        max-width: 1400px;
+        margin: 0 auto;
       }
 
       header {
-        position: absolute;
-        top: 16px;
-        left: 16px;
-        right: 16px;
         display: flex;
         justify-content: space-between;
         align-items: center;
+        margin-bottom: 18px;
         padding: 12px 20px;
         border-radius: 16px;
         background: linear-gradient(135deg, rgba(116, 240, 237, 0.08), rgba(255, 200, 87, 0.08));
         border: 1px solid rgba(116, 240, 237, 0.2);
         box-shadow: var(--shadow-strong);
-        z-index: 150;
       }
 
       .title-group h1 {
@@ -80,10 +76,9 @@
       }
 
       .layout {
-        position: relative;
-        min-height: 100vh;
-        width: 100vw;
-        overflow: hidden;
+        display: grid;
+        grid-template-columns: 280px 1fr 320px;
+        gap: 18px;
       }
 
       .panel {
@@ -95,38 +90,6 @@
         backdrop-filter: blur(10px);
       }
 
-      .hud {
-        position: absolute;
-        top: 110px;
-        width: 320px;
-        max-height: calc(100vh - 140px);
-        overflow: hidden;
-      }
-
-      .hud-left {
-        left: 18px;
-      }
-
-      .hud-right {
-        right: 18px;
-      }
-
-      .dim-target {
-        transition: filter 0.35s ease, opacity 0.35s ease;
-      }
-
-      body.overlay-active .dim-target,
-      body.targeting .dim-target {
-        filter: blur(4px) brightness(0.55);
-      }
-
-      body.overlay-active .character-card.active,
-      body.targeting .character-card.active,
-      body.overlay-active .skills-panel,
-      body.targeting .skills-panel {
-        filter: none;
-      }
-
       .panel-title {
         font-size: 1rem;
         color: var(--secondary);
@@ -135,7 +98,7 @@
       }
 
       .battle-log {
-        max-height: 62vh;
+        height: 540px;
         overflow-y: auto;
         display: flex;
         flex-direction: column;
@@ -162,11 +125,11 @@
       .battle-stage {
         position: relative;
         overflow: hidden;
-        background: linear-gradient(200deg, rgba(10, 15, 31, 0.92), rgba(9, 13, 26, 0.7));
-        border-radius: 0;
-        border: none;
-        min-height: 100vh;
-        box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.6);
+        background: linear-gradient(180deg, rgba(10, 15, 31, 0.85), rgba(9, 13, 26, 0.6));
+        border-radius: 22px;
+        border: 1px solid rgba(116, 240, 237, 0.2);
+        box-shadow: var(--shadow-strong);
+        min-height: 640px;
       }
 
       .stage-overlay {
@@ -179,36 +142,32 @@
 
       .battle-content {
         position: relative;
-        padding: 120px 36px 56px;
+        padding: 24px 28px 18px;
         height: 100%;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
-        align-items: center;
       }
 
       .boss-area {
         display: flex;
         justify-content: center;
-        margin-top: 12px;
+        margin-top: 6px;
       }
 
       .hero-skill-row {
         display: grid;
-        grid-template-columns: auto 320px;
-        align-items: end;
-        gap: 26px;
-        width: 100%;
-        justify-content: center;
+        grid-template-columns: 1fr 320px;
+        align-items: center;
+        gap: 18px;
       }
 
       .heroes-container {
         display: flex;
         justify-content: center;
-        align-items: flex-end;
         gap: 16px;
-        flex-wrap: nowrap;
-        padding: 16px 24px;
+        flex-wrap: wrap;
+        padding: 16px;
       }
 
       .character-card {
@@ -221,7 +180,6 @@
         position: relative;
         transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease,
           filter 0.35s ease;
-        z-index: 1;
       }
 
       .character-card::before {
@@ -239,7 +197,6 @@
         transform: translateY(-10px) scale(1.02);
         border-color: rgba(116, 240, 237, 0.6);
         box-shadow: 0 18px 30px rgba(116, 240, 237, 0.22);
-        z-index: 160;
       }
 
       .character-card.active::before {
@@ -462,6 +419,16 @@
         z-index: 110;
       }
 
+      body.overlay-active .battle-stage,
+      body.targeting .battle-stage {
+        filter: blur(2px) brightness(0.8);
+      }
+
+      body.overlay-active .character-card:not(.active),
+      body.targeting .character-card:not(.active) {
+        filter: blur(1px) opacity(0.6);
+      }
+
       .target-selector {
         background: rgba(7, 10, 22, 0.75);
         backdrop-filter: blur(4px);
@@ -595,6 +562,10 @@
       }
 
       @media (max-width: 1200px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+
         .battle-log {
           height: 200px;
         }
@@ -606,16 +577,12 @@
         .skills-panel {
           position: relative;
         }
-
-        .heroes-container {
-          flex-wrap: wrap;
-        }
       }
     </style>
   </head>
   <body>
     <div class="page-shell">
-      <header class="dim-target">
+      <header>
         <div class="title-group">
           <h1>Crystal Citadel Clash</h1>
           <p>Guide your squad through a cinematic duel against the Dragon Lord.</p>
@@ -623,25 +590,16 @@
       </header>
 
       <div class="layout">
+        <aside class="panel">
+          <div class="panel-title">Battle Feed</div>
+          <div class="battle-log" id="battleLog"></div>
+        </aside>
+
         <div class="battle-stage">
-          <div class="stage-overlay dim-target"></div>
-
-          <div class="hud hud-left panel dim-target">
-            <div class="panel-title">Battle Feed</div>
-            <div class="battle-log" id="battleLog"></div>
-          </div>
-
-          <div class="hud hud-right panel dim-target">
-            <div class="panel-title">Status</div>
-            <p style="color: var(--text-muted); line-height: 1.5">
-              Watch for glowing borders to see whose turn it is. When choosing a move,
-              the arena softly dims so you can focus on the active hero and the target.
-            </p>
-          </div>
-
+          <div class="stage-overlay"></div>
           <div class="battle-content">
-            <div class="boss-area dim-target">
-              <div class="character-card boss-card dim-target" id="bossCard">
+            <div class="boss-area">
+              <div class="character-card boss-card" id="bossCard">
                 <div class="character-top">
                   <div class="portrait">
                     <img src="gif/dragon.gif" alt="Dragon" />
@@ -678,8 +636,8 @@
             </div>
 
             <div class="hero-skill-row">
-              <div class="heroes-container dim-target">
-                <div class="character-card dim-target" id="soldierCard" data-character="soldier">
+              <div class="heroes-container">
+                <div class="character-card" id="soldierCard" data-character="soldier">
                   <div class="character-top">
                     <div class="portrait">
                       <img src="gif/soldier.gif" alt="Soldier" />
@@ -723,7 +681,7 @@
                   </div>
                 </div>
 
-                <div class="character-card dim-target" id="mageCard" data-character="mage">
+                <div class="character-card" id="mageCard" data-character="mage">
                   <div class="character-top">
                     <div class="portrait">
                       <img src="gif/mage.gif" alt="Mage" />
@@ -767,7 +725,7 @@
                   </div>
                 </div>
 
-                <div class="character-card dim-target" id="healerCard" data-character="healer">
+                <div class="character-card" id="healerCard" data-character="healer">
                   <div class="character-top">
                     <div class="portrait">
                       <img src="gif/healer.gif" alt="Healer" />
@@ -811,7 +769,7 @@
                   </div>
                 </div>
 
-                <div class="character-card dim-target" id="tankCard" data-character="tank">
+                <div class="character-card" id="tankCard" data-character="tank">
                   <div class="character-top">
                     <div class="portrait">
                       <img src="gif/tank.gif" alt="Tank" />
@@ -866,6 +824,14 @@
             </div>
           </div>
         </div>
+
+        <aside class="panel">
+          <div class="panel-title">Status</div>
+          <p style="color: var(--text-muted); line-height: 1.5">
+            Watch for glowing borders to see whose turn it is. When choosing a move,
+            the arena softly dims so you can focus on the active hero and the target.
+          </p>
+        </aside>
       </div>
     </div>
 
