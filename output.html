@@ -5,54 +5,152 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Turn-Based RPG Battle</title>
     <style>
+      @font-face {
+        font-family: "Monocraft";
+        src: url("fonts/Monocraft.otf") format("opentype"),
+          url("fonts/Monocraft.ttf") format("truetype");
+        font-weight: 400;
+        font-style: normal;
+      }
+
+      :root {
+        --bg-dark: #0b1021;
+        --bg-panel: rgba(17, 23, 45, 0.8);
+        --bg-card: rgba(26, 33, 66, 0.85);
+        --bg-highlight: #1e2b57;
+        --primary: #74f0ed;
+        --secondary: #ffc857;
+        --accent: #ff6b6b;
+        --hp: linear-gradient(90deg, #ff8f70, #ff3d3d);
+        --mp: linear-gradient(90deg, #74b9ff, #0984e3);
+        --text-main: #e3ecff;
+        --text-muted: #b6c2e1;
+        --shadow-strong: 0 20px 45px rgba(3, 8, 20, 0.45);
+      }
+
       * {
         margin: 0;
         padding: 0;
         box-sizing: border-box;
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
       }
 
       body {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        font-family: "Monocraft", monospace;
+        background: radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.07), transparent 30%),
+          radial-gradient(circle at 80% 0%, rgba(116, 240, 237, 0.12), transparent 35%),
+          linear-gradient(135deg, #0b1021 0%, #0f172e 50%, #0a1030 100%);
+        color: var(--text-main);
         min-height: 100vh;
-        padding: 20px;
-        color: white;
+        overflow: hidden;
       }
 
-      .container {
-        max-width: 1200px;
-        margin: 0 auto;
+      .page-shell {
+        width: 100%;
+        min-height: 100vh;
+        position: relative;
       }
 
       header {
-        text-align: center;
-        margin-bottom: 30px;
+        position: absolute;
+        top: 16px;
+        left: 16px;
+        right: 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 20px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, rgba(116, 240, 237, 0.08), rgba(255, 200, 87, 0.08));
+        border: 1px solid rgba(116, 240, 237, 0.2);
+        box-shadow: var(--shadow-strong);
+        z-index: 150;
       }
 
-      h1 {
-        font-size: 2.5rem;
+      .title-group h1 {
+        font-size: 2.2rem;
+        letter-spacing: 1px;
+        color: var(--primary);
+        text-shadow: 0 6px 22px rgba(116, 240, 237, 0.4);
+      }
+
+      .title-group p {
+        color: var(--text-muted);
+        margin-top: 4px;
+        font-size: 0.95rem;
+      }
+
+      .layout {
+        position: relative;
+        min-height: 100vh;
+        width: 100vw;
+        overflow: hidden;
+      }
+
+      .panel {
+        background: var(--bg-panel);
+        border: 1px solid rgba(116, 240, 237, 0.18);
+        border-radius: 18px;
+        padding: 16px;
+        box-shadow: var(--shadow-strong);
+        backdrop-filter: blur(10px);
+      }
+
+      .hud {
+        position: absolute;
+        top: 110px;
+        width: 320px;
+        max-height: calc(100vh - 140px);
+        overflow: hidden;
+      }
+
+      .hud-left {
+        left: 18px;
+      }
+
+      .hud-right {
+        right: 18px;
+      }
+
+      .dim-target {
+        transition: filter 0.35s ease, opacity 0.35s ease;
+      }
+
+      body.overlay-active .dim-target,
+      body.targeting .dim-target {
+        filter: blur(4px) brightness(0.55);
+      }
+
+      body.overlay-active .character-card.active,
+      body.targeting .character-card.active,
+      body.overlay-active .skills-panel,
+      body.targeting .skills-panel {
+        filter: none;
+      }
+
+      .panel-title {
+        font-size: 1rem;
+        color: var(--secondary);
+        letter-spacing: 0.8px;
         margin-bottom: 10px;
-        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-        background: linear-gradient(to right, #ffd700, #ffa500);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
       }
 
       .battle-log {
-        background: rgba(0, 0, 0, 0.7);
-        border-radius: 10px;
-        padding: 15px;
-        height: 120px;
+        max-height: 62vh;
         overflow-y: auto;
-        margin-bottom: 20px;
-        border: 2px solid #4a90e2;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
       }
 
       .log-entry {
-        margin-bottom: 5px;
         font-size: 0.9rem;
+        color: var(--text-main);
+        padding: 10px 12px;
+        background: rgba(255, 255, 255, 0.04);
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.04);
         opacity: 0;
-        animation: fadeIn 0.3s ease-in forwards;
+        animation: fadeIn 0.4s ease forwards;
       }
 
       @keyframes fadeIn {
@@ -61,259 +159,366 @@
         }
       }
 
-      .battle-area {
+      .battle-stage {
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(200deg, rgba(10, 15, 31, 0.92), rgba(9, 13, 26, 0.7));
+        border-radius: 0;
+        border: none;
+        min-height: 100vh;
+        box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.6);
+      }
+
+      .stage-overlay {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at 50% 20%, rgba(116, 240, 237, 0.15), transparent 45%),
+          radial-gradient(circle at 80% 80%, rgba(255, 107, 107, 0.2), transparent 40%);
+        pointer-events: none;
+      }
+
+      .battle-content {
+        position: relative;
+        padding: 120px 36px 56px;
+        height: 100%;
         display: flex;
         flex-direction: column;
-        gap: 30px;
-      }
-
-      .boss-container {
-        display: flex;
-        justify-content: center;
-      }
-
-      .character-card {
-        background: linear-gradient(145deg, #2c3e50, #34495e);
-        border-radius: 15px;
-        padding: 20px;
-        width: 300px;
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
-        border: 2px solid #3498db;
-        position: relative;
-        transition: all 0.3s ease;
-      }
-
-      .character-card.active {
-        transform: translateY(-10px);
-        box-shadow: 0 12px 24px rgba(52, 152, 219, 0.4);
-        border-color: #f1c40f;
-      }
-
-      .character-header {
-        display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 15px;
       }
 
-      .character-name {
-        font-size: 1.3rem;
-        font-weight: bold;
-      }
-
-      .character-role {
-        font-size: 0.9rem;
-        color: #bdc3c7;
-      }
-
-      .status-badge {
-        background: #e74c3c;
-        padding: 3px 8px;
-        border-radius: 10px;
-        font-size: 0.8rem;
-      }
-
-      .stats {
-        margin-bottom: 15px;
-      }
-
-      .stat-bar {
-        margin-bottom: 8px;
-      }
-
-      .stat-label {
+      .boss-area {
         display: flex;
-        justify-content: space-between;
-        font-size: 0.9rem;
-        margin-bottom: 3px;
+        justify-content: center;
+        margin-top: 12px;
       }
 
-      .bar-container {
-        height: 12px;
-        background: #34495e;
-        border-radius: 6px;
-        overflow: hidden;
-      }
-
-      .bar-fill {
-        height: 100%;
-        border-radius: 6px;
-        transition: width 0.5s ease;
-      }
-
-      .hp-fill {
-        background: linear-gradient(90deg, #e74c3c, #c0392b);
-      }
-
-      .mp-fill {
-        background: linear-gradient(90deg, #3498db, #2980b9);
-      }
-
-      .attributes {
+      .hero-skill-row {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 10px;
-        text-align: center;
-      }
-
-      .attribute {
-        background: rgba(255, 255, 255, 0.1);
-        padding: 8px;
-        border-radius: 8px;
-        font-size: 0.9rem;
+        grid-template-columns: auto 320px;
+        align-items: end;
+        gap: 26px;
+        width: 100%;
+        justify-content: center;
       }
 
       .heroes-container {
         display: flex;
         justify-content: center;
-        gap: 20px;
-        flex-wrap: wrap;
+        align-items: flex-end;
+        gap: 16px;
+        flex-wrap: nowrap;
+        padding: 16px 24px;
       }
 
-      .turn-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
+      .character-card {
+        width: 230px;
+        background: var(--bg-card);
+        border-radius: 18px;
+        padding: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 14px 24px rgba(0, 0, 0, 0.35);
+        position: relative;
+        transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease,
+          filter 0.35s ease;
+        z-index: 1;
+      }
+
+      .character-card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: 16px;
+        background: linear-gradient(135deg, rgba(116, 240, 237, 0.08), rgba(255, 200, 87, 0.08));
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        pointer-events: none;
+      }
+
+      .character-card.active {
+        transform: translateY(-10px) scale(1.02);
+        border-color: rgba(116, 240, 237, 0.6);
+        box-shadow: 0 18px 30px rgba(116, 240, 237, 0.22);
+        z-index: 160;
+      }
+
+      .character-card.active::before {
+        opacity: 1;
+      }
+
+      .character-top {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .portrait {
+        width: 72px;
+        height: 72px;
+        background: #0c1229;
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.3);
+      }
+
+      .portrait img {
         width: 100%;
         height: 100%;
-        background: rgba(0, 0, 0, 0.7);
-        display: none;
-        z-index: 100;
+        object-fit: contain;
+      }
+
+      .character-meta {
+        flex: 1;
+      }
+
+      .character-name {
+        font-size: 1.1rem;
+        color: var(--text-main);
+      }
+
+      .character-role {
+        color: var(--text-muted);
+        font-size: 0.85rem;
+        letter-spacing: 0.5px;
+      }
+
+      .status-badge {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        background: rgba(255, 107, 107, 0.18);
+        color: #ffb3b3;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        border: 1px solid rgba(255, 107, 107, 0.35);
+      }
+
+      .stats {
+        margin-top: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .stat-bar {
+        background: rgba(255, 255, 255, 0.05);
+        padding: 8px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.04);
+      }
+
+      .stat-label {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-bottom: 6px;
+      }
+
+      .bar-container {
+        width: 100%;
+        height: 12px;
+        background: rgba(10, 15, 31, 0.7);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+
+      .bar-fill {
+        height: 100%;
+        border-radius: 10px;
+        transition: width 0.4s ease;
+      }
+
+      .hp-fill {
+        background: var(--hp);
+      }
+
+      .mp-fill {
+        background: var(--mp);
+      }
+
+      .attributes {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .attribute {
+        text-align: center;
+        padding: 8px 6px;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        color: var(--text-muted);
+      }
+
+      .attribute strong {
+        display: block;
+        color: var(--text-main);
+        margin-top: 4px;
+      }
+
+      .boss-card {
+        width: 360px;
       }
 
       .skills-panel {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: linear-gradient(145deg, #2c3e50, #34495e);
-        border-radius: 15px;
-        padding: 25px;
-        width: 400px;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-        border: 2px solid #f1c40f;
-        z-index: 101;
+        position: relative;
+        background: var(--bg-card);
+        border-radius: 18px;
+        border: 1px solid rgba(116, 240, 237, 0.25);
+        padding: 18px;
+        box-shadow: 0 18px 34px rgba(0, 0, 0, 0.35);
         display: none;
+        z-index: 120;
       }
 
-      .panel-header {
-        text-align: center;
-        margin-bottom: 20px;
-        color: #f1c40f;
+      .skills-panel.visible {
+        display: block;
+      }
+
+      .skills-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+      }
+
+      .skills-header h3 {
+        color: var(--secondary);
+        font-size: 1.05rem;
+      }
+
+      .close-panel {
+        background: none;
+        border: none;
+        color: var(--accent);
         font-size: 1.4rem;
+        cursor: pointer;
+        transition: transform 0.2s ease;
+      }
+
+      .close-panel:hover {
+        transform: scale(1.1);
       }
 
       .skills-grid {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 15px;
+        grid-template-columns: 1fr;
+        gap: 10px;
       }
 
       .skill-button {
-        background: linear-gradient(145deg, #3498db, #2980b9);
-        border: none;
-        border-radius: 10px;
-        padding: 15px;
-        color: white;
-        font-weight: bold;
+        background: linear-gradient(135deg, rgba(116, 240, 237, 0.24), rgba(116, 240, 237, 0.12));
+        border: 1px solid rgba(116, 240, 237, 0.35);
+        border-radius: 12px;
+        padding: 12px 14px;
+        color: var(--text-main);
+        font-weight: 600;
         cursor: pointer;
-        transition: all 0.2s ease;
-        text-align: center;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        text-align: left;
       }
 
       .skill-button:hover:not(:disabled) {
         transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        box-shadow: 0 10px 18px rgba(116, 240, 237, 0.25);
+        border-color: rgba(255, 200, 87, 0.6);
       }
 
       .skill-button:disabled {
-        background: #7f8c8d;
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.08);
+        color: rgba(255, 255, 255, 0.4);
         cursor: not-allowed;
-        opacity: 0.6;
       }
 
       .skill-cost {
         font-size: 0.9rem;
-        margin-top: 5px;
-        color: #bdc3c7;
+        color: var(--text-muted);
       }
 
-      .close-panel {
-        position: absolute;
-        top: 15px;
-        right: 15px;
-        background: none;
-        border: none;
-        color: #e74c3c;
-        font-size: 1.5rem;
-        cursor: pointer;
+      .target-selector,
+      .turn-overlay,
+      .game-over {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 200;
+      }
+
+      .turn-overlay {
+        background: rgba(7, 10, 22, 0.6);
+        backdrop-filter: blur(6px);
+        pointer-events: none;
+        z-index: 110;
       }
 
       .target-selector {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.8);
-        display: none;
-        z-index: 102;
-        justify-content: center;
-        align-items: center;
+        background: rgba(7, 10, 22, 0.75);
+        backdrop-filter: blur(4px);
       }
 
       .target-panel {
-        background: linear-gradient(145deg, #2c3e50, #34495e);
-        border-radius: 15px;
-        padding: 30px;
+        background: var(--bg-card);
+        padding: 24px;
+        border-radius: 16px;
+        border: 1px solid rgba(116, 240, 237, 0.25);
+        box-shadow: var(--shadow-strong);
         text-align: center;
-        border: 2px solid #f1c40f;
+        max-width: 420px;
+        width: 90%;
+      }
+
+      .target-panel h3 {
+        margin-bottom: 12px;
+        color: var(--secondary);
       }
 
       .target-options {
         display: flex;
-        gap: 20px;
-        margin-top: 20px;
-        justify-content: center;
+        gap: 12px;
+        margin-top: 10px;
         flex-wrap: wrap;
+        justify-content: center;
       }
 
       .target-button {
-        background: linear-gradient(145deg, #27ae60, #229954);
-        border: none;
-        border-radius: 10px;
-        padding: 12px 20px;
-        color: white;
-        font-weight: bold;
+        background: linear-gradient(135deg, rgba(255, 200, 87, 0.2), rgba(255, 200, 87, 0.12));
+        border: 1px solid rgba(255, 200, 87, 0.4);
+        color: var(--text-main);
+        padding: 12px 18px;
+        border-radius: 12px;
         cursor: pointer;
-        transition: all 0.2s ease;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
       }
 
       .target-button:hover {
-        transform: scale(1.05);
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(255, 200, 87, 0.25);
       }
 
       .game-over {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.9);
-        display: none;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
+        background: rgba(0, 0, 0, 0.8);
       }
 
       .game-over-content {
-        background: linear-gradient(145deg, #2c3e50, #34495e);
+        background: var(--bg-card);
         border-radius: 20px;
-        padding: 40px;
+        padding: 32px;
         text-align: center;
         border: 3px solid;
         max-width: 500px;
         width: 90%;
+        box-shadow: var(--shadow-strong);
       }
 
       .victory {
@@ -321,39 +526,36 @@
       }
 
       .defeat {
-        border-color: #e74c3c;
+        border-color: #ff6b6b;
       }
 
       .game-over-title {
-        font-size: 3rem;
-        margin-bottom: 20px;
+        font-size: 2.8rem;
+        margin-bottom: 12px;
       }
 
       .victory-title {
         color: #27ae60;
-        text-shadow: 0 0 20px rgba(39, 174, 96, 0.5);
       }
 
       .defeat-title {
-        color: #e74c3c;
-        text-shadow: 0 0 20px rgba(231, 76, 60, 0.5);
+        color: #ff6b6b;
       }
 
       .restart-button {
-        background: linear-gradient(145deg, #f39c12, #e67e22);
-        border: none;
-        border-radius: 10px;
-        padding: 15px 30px;
-        color: white;
-        font-size: 1.2rem;
-        font-weight: bold;
+        background: linear-gradient(135deg, rgba(116, 240, 237, 0.25), rgba(116, 240, 237, 0.18));
+        border: 1px solid rgba(116, 240, 237, 0.5);
+        border-radius: 12px;
+        padding: 12px 22px;
+        color: var(--text-main);
+        font-size: 1.05rem;
         cursor: pointer;
-        margin-top: 20px;
-        transition: all 0.2s ease;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
       }
 
       .restart-button:hover {
-        transform: scale(1.05);
+        transform: translateY(-2px);
+        box-shadow: 0 12px 20px rgba(116, 240, 237, 0.25);
       }
 
       .damage-text {
@@ -361,7 +563,8 @@
         font-weight: bold;
         font-size: 1.2rem;
         animation: floatUp 1s ease-out forwards;
-        z-index: 50;
+        z-index: 500;
+        text-shadow: 0 6px 10px rgba(0, 0, 0, 0.35);
       }
 
       @keyframes floatUp {
@@ -376,277 +579,289 @@
       }
 
       .damage {
-        color: #e74c3c;
+        color: var(--accent);
       }
 
       .heal {
-        color: #27ae60;
+        color: #5adf9c;
       }
 
       .buff {
-        color: #3498db;
+        color: #74f0ed;
       }
 
       .debuff {
-        color: #9b59b6;
+        color: #c792ea;
+      }
+
+      @media (max-width: 1200px) {
+        .battle-log {
+          height: 200px;
+        }
+
+        .hero-skill-row {
+          grid-template-columns: 1fr;
+        }
+
+        .skills-panel {
+          position: relative;
+        }
+
+        .heroes-container {
+          flex-wrap: wrap;
+        }
       }
     </style>
   </head>
   <body>
-    <div class="container">
-      <header>
-        <h1>Turn-Based RPG Battle</h1>
+    <div class="page-shell">
+      <header class="dim-target">
+        <div class="title-group">
+          <h1>Crystal Citadel Clash</h1>
+          <p>Guide your squad through a cinematic duel against the Dragon Lord.</p>
+        </div>
       </header>
 
-      <div class="battle-log" id="battleLog"></div>
+      <div class="layout">
+        <div class="battle-stage">
+          <div class="stage-overlay dim-target"></div>
 
-      <div class="battle-area">
-        <div class="boss-container">
-          <div class="character-card" id="bossCard">
-            <div class="character-header">
-              <div>
-                <div class="character-name">Dragon Lord</div>
-                <div class="character-role">Boss</div>
-              </div>
-              <div class="status-badge" id="bossStatus"></div>
-            </div>
-            <div class="stats">
-              <div class="stat-bar">
-                <div class="stat-label">
-                  <span>HP</span>
-                  <span id="bossHpText">800/800</span>
-                </div>
-                <div class="bar-container">
-                  <div
-                    class="bar-fill hp-fill"
-                    id="bossHpBar"
-                    style="width: 100%"
-                  ></div>
-                </div>
-              </div>
-            </div>
-            <div class="attributes">
-              <div class="attribute">
-                <div>ATK</div>
-                <div>35</div>
-              </div>
-              <div class="attribute">
-                <div>DEF</div>
-                <div>15</div>
-              </div>
-              <div class="attribute">
-                <div>MAG</div>
-                <div>25</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="heroes-container">
-          <div class="character-card" id="soldierCard" data-character="soldier">
-            <div class="character-header">
-              <div>
-                <div class="character-name">Soldier</div>
-                <div class="character-role">Physical DPS</div>
-              </div>
-              <div class="status-badge" id="soldierStatus"></div>
-            </div>
-            <div class="stats">
-              <div class="stat-bar">
-                <div class="stat-label">
-                  <span>HP</span>
-                  <span id="soldierHpText">120/120</span>
-                </div>
-                <div class="bar-container">
-                  <div
-                    class="bar-fill hp-fill"
-                    id="soldierHpBar"
-                    style="width: 100%"
-                  ></div>
-                </div>
-              </div>
-              <div class="stat-bar">
-                <div class="stat-label">
-                  <span>MP</span>
-                  <span id="soldierMpText">40/40</span>
-                </div>
-                <div class="bar-container">
-                  <div
-                    class="bar-fill mp-fill"
-                    id="soldierMpBar"
-                    style="width: 100%"
-                  ></div>
-                </div>
-              </div>
-            </div>
-            <div class="attributes">
-              <div class="attribute">
-                <div>ATK</div>
-                <div>25</div>
-              </div>
-              <div class="attribute">
-                <div>DEF</div>
-                <div>10</div>
-              </div>
-              <div class="attribute">
-                <div>MAG</div>
-                <div>5</div>
-              </div>
-            </div>
+          <div class="hud hud-left panel dim-target">
+            <div class="panel-title">Battle Feed</div>
+            <div class="battle-log" id="battleLog"></div>
           </div>
 
-          <div class="character-card" id="mageCard" data-character="mage">
-            <div class="character-header">
-              <div>
-                <div class="character-name">Mage</div>
-                <div class="character-role">Magic DPS</div>
-              </div>
-              <div class="status-badge" id="mageStatus"></div>
-            </div>
-            <div class="stats">
-              <div class="stat-bar">
-                <div class="stat-label">
-                  <span>HP</span>
-                  <span id="mageHpText">80/80</span>
-                </div>
-                <div class="bar-container">
-                  <div
-                    class="bar-fill hp-fill"
-                    id="mageHpBar"
-                    style="width: 100%"
-                  ></div>
-                </div>
-              </div>
-              <div class="stat-bar">
-                <div class="stat-label">
-                  <span>MP</span>
-                  <span id="mageMpText">100/100</span>
-                </div>
-                <div class="bar-container">
-                  <div
-                    class="bar-fill mp-fill"
-                    id="mageMpBar"
-                    style="width: 100%"
-                  ></div>
-                </div>
-              </div>
-            </div>
-            <div class="attributes">
-              <div class="attribute">
-                <div>ATK</div>
-                <div>5</div>
-              </div>
-              <div class="attribute">
-                <div>DEF</div>
-                <div>5</div>
-              </div>
-              <div class="attribute">
-                <div>MAG</div>
-                <div>30</div>
-              </div>
-            </div>
+          <div class="hud hud-right panel dim-target">
+            <div class="panel-title">Status</div>
+            <p style="color: var(--text-muted); line-height: 1.5">
+              Watch for glowing borders to see whose turn it is. When choosing a move,
+              the arena softly dims so you can focus on the active hero and the target.
+            </p>
           </div>
 
-          <div class="character-card" id="healerCard" data-character="healer">
-            <div class="character-header">
-              <div>
-                <div class="character-name">Healer</div>
-                <div class="character-role">Support</div>
-              </div>
-              <div class="status-badge" id="healerStatus"></div>
-            </div>
-            <div class="stats">
-              <div class="stat-bar">
-                <div class="stat-label">
-                  <span>HP</span>
-                  <span id="healerHpText">100/100</span>
+          <div class="battle-content">
+            <div class="boss-area dim-target">
+              <div class="character-card boss-card dim-target" id="bossCard">
+                <div class="character-top">
+                  <div class="portrait">
+                    <img src="gif/dragon.gif" alt="Dragon" />
+                  </div>
+                  <div class="character-meta">
+                    <div class="character-name">Dragon Lord</div>
+                    <div class="character-role">Boss</div>
+                  </div>
+                  <div class="status-badge" id="bossStatus"></div>
                 </div>
-                <div class="bar-container">
-                  <div
-                    class="bar-fill hp-fill"
-                    id="healerHpBar"
-                    style="width: 100%"
-                  ></div>
+                <div class="stats">
+                  <div class="stat-bar">
+                    <div class="stat-label">
+                      <span>HP</span>
+                      <span id="bossHpText">800/800</span>
+                    </div>
+                    <div class="bar-container">
+                      <div class="bar-fill hp-fill" id="bossHpBar" style="width: 100%"></div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div class="stat-bar">
-                <div class="stat-label">
-                  <span>MP</span>
-                  <span id="healerMpText">80/80</span>
+                <div class="attributes">
+                  <div class="attribute">
+                    ATK<strong>35</strong>
+                  </div>
+                  <div class="attribute">
+                    DEF<strong>15</strong>
+                  </div>
+                  <div class="attribute">
+                    MAG<strong>25</strong>
+                  </div>
                 </div>
-                <div class="bar-container">
-                  <div
-                    class="bar-fill mp-fill"
-                    id="healerMpBar"
-                    style="width: 100%"
-                  ></div>
-                </div>
-              </div>
-            </div>
-            <div class="attributes">
-              <div class="attribute">
-                <div>ATK</div>
-                <div>8</div>
-              </div>
-              <div class="attribute">
-                <div>DEF</div>
-                <div>8</div>
-              </div>
-              <div class="attribute">
-                <div>MAG</div>
-                <div>15</div>
               </div>
             </div>
-          </div>
 
-          <div class="character-card" id="tankCard" data-character="tank">
-            <div class="character-header">
-              <div>
-                <div class="character-name">Tank</div>
-                <div class="character-role">Defender</div>
-              </div>
-              <div class="status-badge" id="tankStatus"></div>
-            </div>
-            <div class="stats">
-              <div class="stat-bar">
-                <div class="stat-label">
-                  <span>HP</span>
-                  <span id="tankHpText">180/180</span>
+            <div class="hero-skill-row">
+              <div class="heroes-container dim-target">
+                <div class="character-card dim-target" id="soldierCard" data-character="soldier">
+                  <div class="character-top">
+                    <div class="portrait">
+                      <img src="gif/soldier.gif" alt="Soldier" />
+                    </div>
+                    <div class="character-meta">
+                      <div class="character-name">Soldier</div>
+                      <div class="character-role">Physical DPS</div>
+                    </div>
+                    <div class="status-badge" id="soldierStatus"></div>
+                  </div>
+                  <div class="stats">
+                    <div class="stat-bar">
+                      <div class="stat-label">
+                        <span>HP</span>
+                        <span id="soldierHpText">120/120</span>
+                      </div>
+                      <div class="bar-container">
+                        <div class="bar-fill hp-fill" id="soldierHpBar" style="width: 100%"></div>
+                      </div>
+                    </div>
+                    <div class="stat-bar">
+                      <div class="stat-label">
+                        <span>MP</span>
+                        <span id="soldierMpText">40/40</span>
+                      </div>
+                      <div class="bar-container">
+                        <div class="bar-fill mp-fill" id="soldierMpBar" style="width: 100%"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="attributes">
+                    <div class="attribute">
+                      ATK<strong>25</strong>
+                    </div>
+                    <div class="attribute">
+                      DEF<strong>10</strong>
+                    </div>
+                    <div class="attribute">
+                      MAG<strong>5</strong>
+                    </div>
+                  </div>
                 </div>
-                <div class="bar-container">
-                  <div
-                    class="bar-fill hp-fill"
-                    id="tankHpBar"
-                    style="width: 100%"
-                  ></div>
+
+                <div class="character-card dim-target" id="mageCard" data-character="mage">
+                  <div class="character-top">
+                    <div class="portrait">
+                      <img src="gif/mage.gif" alt="Mage" />
+                    </div>
+                    <div class="character-meta">
+                      <div class="character-name">Mage</div>
+                      <div class="character-role">Magic DPS</div>
+                    </div>
+                    <div class="status-badge" id="mageStatus"></div>
+                  </div>
+                  <div class="stats">
+                    <div class="stat-bar">
+                      <div class="stat-label">
+                        <span>HP</span>
+                        <span id="mageHpText">80/80</span>
+                      </div>
+                      <div class="bar-container">
+                        <div class="bar-fill hp-fill" id="mageHpBar" style="width: 100%"></div>
+                      </div>
+                    </div>
+                    <div class="stat-bar">
+                      <div class="stat-label">
+                        <span>MP</span>
+                        <span id="mageMpText">100/100</span>
+                      </div>
+                      <div class="bar-container">
+                        <div class="bar-fill mp-fill" id="mageMpBar" style="width: 100%"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="attributes">
+                    <div class="attribute">
+                      ATK<strong>5</strong>
+                    </div>
+                    <div class="attribute">
+                      DEF<strong>5</strong>
+                    </div>
+                    <div class="attribute">
+                      MAG<strong>30</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="character-card dim-target" id="healerCard" data-character="healer">
+                  <div class="character-top">
+                    <div class="portrait">
+                      <img src="gif/healer.gif" alt="Healer" />
+                    </div>
+                    <div class="character-meta">
+                      <div class="character-name">Healer</div>
+                      <div class="character-role">Support</div>
+                    </div>
+                    <div class="status-badge" id="healerStatus"></div>
+                  </div>
+                  <div class="stats">
+                    <div class="stat-bar">
+                      <div class="stat-label">
+                        <span>HP</span>
+                        <span id="healerHpText">100/100</span>
+                      </div>
+                      <div class="bar-container">
+                        <div class="bar-fill hp-fill" id="healerHpBar" style="width: 100%"></div>
+                      </div>
+                    </div>
+                    <div class="stat-bar">
+                      <div class="stat-label">
+                        <span>MP</span>
+                        <span id="healerMpText">80/80</span>
+                      </div>
+                      <div class="bar-container">
+                        <div class="bar-fill mp-fill" id="healerMpBar" style="width: 100%"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="attributes">
+                    <div class="attribute">
+                      ATK<strong>8</strong>
+                    </div>
+                    <div class="attribute">
+                      DEF<strong>8</strong>
+                    </div>
+                    <div class="attribute">
+                      MAG<strong>15</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="character-card dim-target" id="tankCard" data-character="tank">
+                  <div class="character-top">
+                    <div class="portrait">
+                      <img src="gif/tank.gif" alt="Tank" />
+                    </div>
+                    <div class="character-meta">
+                      <div class="character-name">Tank</div>
+                      <div class="character-role">Defender</div>
+                    </div>
+                    <div class="status-badge" id="tankStatus"></div>
+                  </div>
+                  <div class="stats">
+                    <div class="stat-bar">
+                      <div class="stat-label">
+                        <span>HP</span>
+                        <span id="tankHpText">180/180</span>
+                      </div>
+                      <div class="bar-container">
+                        <div class="bar-fill hp-fill" id="tankHpBar" style="width: 100%"></div>
+                      </div>
+                    </div>
+                    <div class="stat-bar">
+                      <div class="stat-label">
+                        <span>MP</span>
+                        <span id="tankMpText">50/50</span>
+                      </div>
+                      <div class="bar-container">
+                        <div class="bar-fill mp-fill" id="tankMpBar" style="width: 100%"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="attributes">
+                    <div class="attribute">
+                      ATK<strong>15</strong>
+                    </div>
+                    <div class="attribute">
+                      DEF<strong>20</strong>
+                    </div>
+                    <div class="attribute">
+                      MAG<strong>5</strong>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div class="stat-bar">
-                <div class="stat-label">
-                  <span>MP</span>
-                  <span id="tankMpText">50/50</span>
+
+              <div class="skills-panel" id="skillsPanel">
+                <div class="skills-header">
+                  <h3 id="skillsHeader">Skills</h3>
+                  <button class="close-panel" id="closeSkills">✕</button>
                 </div>
-                <div class="bar-container">
-                  <div
-                    class="bar-fill mp-fill"
-                    id="tankMpBar"
-                    style="width: 100%"
-                  ></div>
-                </div>
-              </div>
-            </div>
-            <div class="attributes">
-              <div class="attribute">
-                <div>ATK</div>
-                <div>15</div>
-              </div>
-              <div class="attribute">
-                <div>DEF</div>
-                <div>20</div>
-              </div>
-              <div class="attribute">
-                <div>MAG</div>
-                <div>5</div>
+                <div class="skills-grid" id="skillsGrid"></div>
               </div>
             </div>
           </div>
@@ -655,12 +870,6 @@
     </div>
 
     <div class="turn-overlay" id="turnOverlay"></div>
-
-    <div class="skills-panel" id="skillsPanel">
-      <button class="close-panel" id="closeSkills">&times;</button>
-      <div class="panel-header" id="skillsHeader">Choose Skill</div>
-      <div class="skills-grid" id="skillsGrid"></div>
-    </div>
 
     <div class="target-selector" id="targetSelector">
       <div class="target-panel">
@@ -671,8 +880,11 @@
 
     <div class="game-over" id="gameOver">
       <div class="game-over-content" id="gameOverContent">
-        <h2 class="game-over-title" id="gameOverTitle">Game Over</h2>
-        <button class="restart-button" id="restartButton">Play Again</button>
+        <div class="game-over-title" id="gameOverTitle">VICTORY!</div>
+        <p id="gameOverMessage">
+          Your party stands triumphant amid shimmering stardust.
+        </p>
+        <button class="restart-button" id="restartButton">Restart Battle</button>
       </div>
     </div>
 
@@ -992,6 +1204,8 @@
 
           // Hide overlays
           document.getElementById("turnOverlay").style.display = "none";
+          document.body.classList.remove("overlay-active");
+          document.body.classList.remove("targeting");
           document.getElementById("skillsPanel").style.display = "none";
           document.getElementById("targetSelector").style.display = "none";
           document.getElementById("gameOver").style.display = "none";
@@ -1047,11 +1261,13 @@
             "skillsHeader"
           ).textContent = `${character.name}'s Skills`;
           overlay.style.display = "block";
+          document.body.classList.add("overlay-active");
           panel.style.display = "block";
         }
 
         hideSkillsPanel() {
           document.getElementById("turnOverlay").style.display = "none";
+          document.body.classList.remove("overlay-active");
           document.getElementById("skillsPanel").style.display = "none";
         }
 
@@ -1106,10 +1322,12 @@
             options.appendChild(button);
           }
 
+          document.body.classList.add("targeting");
           selector.style.display = "flex";
         }
 
         hideTargetSelector() {
+          document.body.classList.remove("targeting");
           document.getElementById("targetSelector").style.display = "none";
         }
 
