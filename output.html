@@ -508,21 +508,32 @@
         background: var(--panel);
         border: 1px solid var(--line);
         border-radius: 12px;
-        padding: 9px 10px;
+        padding: 8px 10px;
         color: var(--text);
         box-shadow: var(--shadow);
-        font-size: 0.96rem;
+        font-size: 0.9rem;
         position: absolute;
         left: 0;
         top: 0;
-        max-width: 260px;
+        max-width: 220px;
         z-index: 5;
         pointer-events: none;
       }
 
-      .skill-info h4 {
+      .skill-tooltip-title {
         color: var(--secondary);
-        margin-bottom: 6px;
+        margin-bottom: 4px;
+        font-size: 0.92rem;
+      }
+
+      .skill-tooltip-meta {
+        color: var(--muted);
+        margin-bottom: 4px;
+        font-size: 0.86rem;
+      }
+
+      .skill-tooltip-text {
+        line-height: 1.25;
       }
 
       .target-layer {
@@ -1260,9 +1271,9 @@
               ? "All Allies"
               : "Self";
           this.skillInfo.innerHTML = `
-            <h4>${skill.name}</h4>
-            <div style="color:var(--muted);margin-bottom:6px;">${targetLabel} · MP ${skill.cost}</div>
-            <p>${skill.description}</p>
+            <div class="skill-tooltip-title">${skill.name}</div>
+            <div class="skill-tooltip-meta">${targetLabel} · MP ${skill.cost}</div>
+            <div class="skill-tooltip-text">${skill.description}</div>
           `;
           this.skillInfo.style.display = "block";
           const btnRect = button.getBoundingClientRect();
