@@ -462,6 +462,7 @@
         display: flex;
         flex-direction: column;
         gap: 8px;
+        position: relative;
       }
 
       .skill-buttons {
@@ -511,6 +512,12 @@
         color: var(--text);
         box-shadow: var(--shadow);
         font-size: 0.96rem;
+        position: absolute;
+        left: 0;
+        top: 0;
+        max-width: 260px;
+        z-index: 5;
+        pointer-events: none;
       }
 
       .skill-info h4 {
@@ -1046,6 +1053,7 @@
           this.bossWindupSkill = null;
           this.logEl = document.getElementById("logBody");
           this.heroRow = document.getElementById("heroRow");
+          this.skillBar = document.getElementById("skillBar");
           this.skillButtons = document.getElementById("skillButtons");
           this.skillInfo = document.getElementById("skillInfo");
           this.waitingText = document.getElementById("waitingText");
@@ -1226,17 +1234,21 @@
             btn.innerHTML = `<div><strong>${skill.name}</strong></div>
               <div class="skill-meta"><span>${skill.target}</span><span>MP ${skill.cost}</span></div>`;
             btn.disabled = hero.mp < skill.cost || hero.hp <= 0;
+            btn.addEventListener("mouseenter", () => {
+              this.showSkillInfo(skill, btn);
+            });
+            btn.addEventListener("mouseleave", () => {
+              this.hideSkillInfo();
+            });
             btn.addEventListener("click", () => {
               this.pendingSkill = { hero, skill };
-              this.showSkillInfo(skill);
               this.prepareTargeting(hero, skill);
             });
             this.skillButtons.appendChild(btn);
           });
         }
 
-        showSkillInfo(skill) {
-          this.skillInfo.style.display = "block";
+        showSkillInfo(skill, button) {
           const targetLabel =
             skill.target === "enemy"
               ? "Single Target"
@@ -1252,6 +1264,24 @@
             <div style="color:var(--muted);margin-bottom:6px;">${targetLabel} · MP ${skill.cost}</div>
             <p>${skill.description}</p>
           `;
+          this.skillInfo.style.display = "block";
+          const btnRect = button.getBoundingClientRect();
+          const barRect = this.skillBar.getBoundingClientRect();
+          const tooltipWidth = this.skillInfo.offsetWidth;
+          const left = Math.min(
+            Math.max(btnRect.left - barRect.left + btnRect.width / 2 - tooltipWidth / 2, 8),
+            barRect.width - tooltipWidth - 8
+          );
+          const top = Math.max(
+            btnRect.top - barRect.top - this.skillInfo.offsetHeight - 8,
+            8
+          );
+          this.skillInfo.style.left = `${left}px`;
+          this.skillInfo.style.top = `${top}px`;
+        }
+
+        hideSkillInfo() {
+          this.skillInfo.style.display = "none";
         }
 
         prepareTargeting(hero, skill) {
