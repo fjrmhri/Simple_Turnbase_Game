@@ -569,6 +569,32 @@
         box-shadow: 0 12px 20px rgba(0, 0, 0, 0.35);
       }
 
+      .target-actions {
+        margin-top: 12px;
+        display: flex;
+        justify-content: flex-end;
+      }
+
+      .target-cancel {
+        padding: 8px 14px;
+        background: rgba(255, 107, 107, 0.12);
+        border: 1px solid rgba(255, 107, 107, 0.35);
+        color: var(--text);
+        border-radius: 10px;
+        cursor: pointer;
+        transition: background 0.2s ease, transform 0.2s ease;
+      }
+
+      .target-cancel:hover {
+        background: rgba(255, 107, 107, 0.18);
+        transform: translateY(-1px);
+      }
+
+      .target-highlight {
+        box-shadow: 0 0 0 2px var(--secondary), 0 14px 30px rgba(116, 240, 237, 0.25);
+        transform: translateY(-2px);
+      }
+
       .footer-row {
         position: relative;
         z-index: 3;
@@ -656,7 +682,7 @@
             </div>
             <div class="arena-center">
               <div class="dragon-area">
-                <div class="boss-card">
+                <div class="boss-card" id="bossCard">
                   <div class="boss-top">
                     <div class="boss-avatar">
                       <img src="gif/dragon.gif" alt="Dragon" />
@@ -712,6 +738,9 @@
         <div class="target-window">
           <h3>Select a target</h3>
           <div class="target-options" id="targetOptions"></div>
+          <div class="target-actions">
+            <button class="target-cancel" id="targetCancel">✕ Cancel</button>
+          </div>
         </div>
       </div>
 
@@ -937,38 +966,37 @@
         status: {},
         skills: [
           {
-            id: "heavyClaw",
-            name: "Heavy Claw",
+            id: "crushingBlow",
             cost: 0,
             type: "physical",
-            power: 1.25,
+            power: 1.15,
             target: "enemy",
+            weight: 4,
           },
           {
-            id: "flameBreath",
-            name: "Flame Breath",
-            cost: 16,
+            id: "fieryOnslaught",
+            cost: 24,
             type: "magic",
-            power: 0.95,
-            target: "all-enemies",
-            dot: { amount: 5, duration: 2 },
-          },
-          {
-            id: "corruptRoar",
-            name: "Corrupt Roar",
-            cost: 14,
-            type: "debuff",
-            target: "all-enemies",
-            debuff: { atkDown: 0.15, duration: 2 },
-          },
-          {
-            id: "executeBite",
-            name: "Execute Bite",
-            cost: 12,
-            type: "physical",
-            power: 1.6,
+            power: 1.85,
+            splashPower: 0.75,
             target: "enemy",
-            execute: 0.3,
+            weight: 3,
+          },
+          {
+            id: "searingRoar",
+            cost: 18,
+            type: "magic",
+            power: 1.15,
+            target: "all-enemies",
+            weight: 3,
+          },
+          {
+            id: "apexPredation",
+            cost: 36,
+            type: "physical",
+            power: 2.35,
+            target: "enemy",
+            weight: 1,
           },
         ],
       };
@@ -986,6 +1014,7 @@
             hp: bossConfig.maxHp,
             mp: bossConfig.maxMp,
           };
+          this.bossEnraged = false;
           this.turnOrder = ["soldier", "mage", "healer", "tank", "boss"];
           this.turnIndex = 0;
           this.state = "menu";
@@ -999,6 +1028,8 @@
           this.turnNodes = document.getElementById("turnNodes");
           this.targetLayer = document.getElementById("targetLayer");
           this.targetOptions = document.getElementById("targetOptions");
+          this.targetCancel = document.getElementById("targetCancel");
+          this.targetingActive = false;
           this.bindMenu();
           this.renderHeroes();
           this.updateUI();
@@ -1016,6 +1047,10 @@
 
           document.getElementById("restart").addEventListener("click", () => {
             this.reset();
+          });
+
+          this.targetCancel.addEventListener("click", () => {
+            this.cancelTargeting();
           });
         }
 
@@ -1035,6 +1070,9 @@
           this.turnIndex = 0;
           this.state = "playing";
           this.pendingSkill = null;
+          this.targetingActive = false;
+          this.bossEnraged = false;
+          this.closeTargetSelect();
           document.getElementById("gameOver").style.display = "none";
           this.logEl.innerHTML = "";
           this.renderHeroes();
@@ -1209,7 +1247,9 @@
         }
 
         openTargetSelect(options, callback) {
+          this.targetingActive = true;
           this.targetOptions.innerHTML = "";
+          this.highlightTargets(options);
           options.forEach((t) => {
             const btn = document.createElement("button");
             btn.className = "target-btn";
@@ -1225,6 +1265,31 @@
 
         closeTargetSelect() {
           this.targetLayer.style.display = "none";
+          this.targetOptions.innerHTML = "";
+          this.clearTargetHighlights();
+          this.targetingActive = false;
+        }
+
+        cancelTargeting() {
+          if (!this.targetingActive) return;
+          this.pendingSkill = null;
+          this.closeTargetSelect();
+        }
+
+        highlightTargets(options) {
+          this.clearTargetHighlights();
+          options.forEach((t) => {
+            const el = document.getElementById(
+              t.id === "boss" ? "bossCard" : `${t.id}Card`
+            );
+            if (el) el.classList.add("target-highlight");
+          });
+        }
+
+        clearTargetHighlights() {
+          document
+            .querySelectorAll(".target-highlight")
+            .forEach((el) => el.classList.remove("target-highlight"));
         }
 
         applyDurations() {
@@ -1246,12 +1311,12 @@
           return Math.max(0.1, (target.def || this.boss.def) * modifier);
         }
 
-        applyDamage(source, target, skill) {
+        applyDamage(source, target, skill, powerOverride = null) {
           const isMagic = skill.type === "magic";
           const attackStat = isMagic ? source.mag : source.atk;
           const defense = target.id === "boss" ? this.boss.def : target.def;
           let base = Math.max(0, attackStat - defense * 0.5);
-          const power = skill.power || 1;
+          const power = powerOverride ?? skill.power || 1;
           let buffMulti = 1;
           if (source.status.atkUp && !isMagic)
             buffMulti += source.status.atkUp.amount;
@@ -1260,11 +1325,24 @@
           if (target.status.dmgDown) buffMulti -= target.status.dmgDown.amount;
           const guardCut = target.status.guard?.amount || 0;
           const guardTeam = target.status.guardTeam?.amount || 0;
-          const damage = Math.max(
+          const enraged = this.boss.hp <= this.boss.maxHp * 0.5 || this.bossEnraged;
+          let damage = Math.max(
             8,
             Math.round(base * power * buffMulti * (1 - guardCut - guardTeam))
           );
+          if (source.id === "boss" && enraged) {
+            damage = Math.max(8, Math.round(damage * 2));
+            this.bossEnraged = true;
+          }
           target.hp = Math.max(0, target.hp - damage);
+          if (
+            target.id === "boss" &&
+            !this.bossEnraged &&
+            target.hp <= target.maxHp * 0.5
+          ) {
+            this.bossEnraged = true;
+            this.log(`${this.boss.name} becomes enraged! Its attacks intensify.`);
+          }
           if (skill.debuff) {
             target.status = target.status || {};
             Object.keys(skill.debuff).forEach((key) => {
@@ -1294,6 +1372,7 @@
         }
 
         executeSkill(user, skill, target = null) {
+          this.pendingSkill = null;
           if (user.mp < skill.cost) return;
           user.mp -= skill.cost;
           if (!target) target = skill.target === "self" ? user : null;
@@ -1361,7 +1440,38 @@
             const dot = this.boss.status.dot;
             this.boss.hp = Math.max(0, this.boss.hp - dot.amount);
             this.log(`Burning embers scorch the dragon for ${dot.amount}.`);
+            if (!this.bossEnraged && this.boss.hp <= this.boss.maxHp * 0.5) {
+              this.bossEnraged = true;
+              this.log(`${this.boss.name} becomes enraged! Its attacks intensify.`);
+            }
           }
+        }
+
+        weightedChoice(skills) {
+          const total = skills.reduce((sum, skill) => sum + (skill.weight || 1), 0);
+          let roll = Math.random() * total;
+          for (const skill of skills) {
+            roll -= skill.weight || 1;
+            if (roll <= 0) return skill;
+          }
+          return skills[0];
+        }
+
+        pickPriorityTarget(aliveHeroes) {
+          const tauntTarget = this.boss.status.taunt?.target;
+          const weighted = aliveHeroes.map((hero) => {
+            const hpRatio = hero.hp / hero.maxHp;
+            let weight = 1 - hpRatio + 0.1;
+            if (tauntTarget === hero.id) weight += 0.8;
+            return { hero, weight };
+          });
+          const total = weighted.reduce((sum, w) => sum + w.weight, 0);
+          let roll = Math.random() * total;
+          for (const entry of weighted) {
+            roll -= entry.weight;
+            if (roll <= 0) return entry.hero;
+          }
+          return aliveHeroes[0];
         }
 
         dragonAct() {
@@ -1372,83 +1482,74 @@
             return;
           }
 
-          const lowHero = aliveHeroes.reduce(
-            (a, b) => (b.hp / b.maxHp < a.hp / a.maxHp ? b : a),
-            aliveHeroes[0]
-          );
-          let choice = boss.skills[0];
-
-          if (lowHero.hp / lowHero.maxHp < 0.3) {
-            choice = boss.skills.find((s) => s.id === "executeBite");
-          } else if (aliveHeroes.length >= 3 && boss.mp >= 16) {
-            choice = boss.skills.find((s) => s.id === "flameBreath");
-          } else if (Math.random() < 0.25) {
-            choice = boss.skills.find((s) => s.id === "corruptRoar");
+          if (
+            boss.status.taunt &&
+            (!this.getHero(boss.status.taunt.target) ||
+              this.getHero(boss.status.taunt.target).hp <= 0)
+          ) {
+            delete boss.status.taunt;
           }
+
+          const affordable = boss.skills.filter(
+            (s) => s.cost === 0 || s.cost <= boss.mp
+          );
+          const pool = affordable.length ? affordable : [boss.skills[0]];
+          const choice = this.weightedChoice(pool);
+
+          boss.mp = Math.max(0, boss.mp - choice.cost);
 
           if (
             boss.status.taunt &&
             this.getHero(boss.status.taunt.target)?.hp > 0
           ) {
-            choice =
-              choice.id === "flameBreath"
-                ? choice
-                : boss.skills.find((s) => s.id === "heavyClaw");
             this.log(
-              `Dragon is provoked and focuses the ${
+              `Dragon is provoked and eyes ${
                 this.getHero(boss.status.taunt.target).name
               }!`
             );
           }
 
-          if (boss.mp < choice.cost)
-            choice =
-              boss.skills.find((s) => s.cost <= boss.mp) || boss.skills[0];
-          boss.mp = Math.max(0, boss.mp - choice.cost);
-
           if (choice.target === "all-enemies") {
             this.heroes.forEach((hero) => {
               if (hero.hp > 0) {
                 const dmg = this.applyDamage(boss, hero, choice);
-                this.log(
-                  `${boss.name} used ${choice.name} hitting ${hero.name} for ${dmg}.`
-                );
+                this.log(`Dragon scorched ${hero.name} for ${dmg} damage.`);
               }
             });
-          } else if (choice.type === "debuff") {
-            this.heroes.forEach((hero) => {
-              hero.status.atkDown = {
-                amount: choice.debuff.atkDown,
-                duration: choice.debuff.duration,
-              };
-            });
-            this.log(
-              `${boss.name} unleashes ${choice.name}, weakening the party.`
+          } else if (choice.id === "fieryOnslaught") {
+            const targetHero = this.pickPriorityTarget(aliveHeroes);
+            const mainDmg = this.applyDamage(
+              boss,
+              targetHero,
+              choice,
+              choice.power
             );
+            this.log(
+              `Dragon unleashed a fiery blast on ${targetHero.name} for ${mainDmg} damage.`
+            );
+            aliveHeroes
+              .filter((h) => h.id !== targetHero.id)
+              .forEach((hero) => {
+                const splashDmg = this.applyDamage(
+                  boss,
+                  hero,
+                  choice,
+                  choice.splashPower
+                );
+                this.log(
+                  `Splashing flames seared ${hero.name} for ${splashDmg} damage.`
+                );
+              });
           } else {
-            let targetHero = lowHero;
-            if (
-              boss.status.taunt &&
-              this.getHero(boss.status.taunt.target)?.hp > 0
-            ) {
-              targetHero = this.getHero(boss.status.taunt.target);
-            } else if (Math.random() < 0.4) {
-              targetHero = aliveHeroes.reduce(
-                (a, b) => (b.hp < a.hp ? b : a),
-                aliveHeroes[0]
-              );
-            }
+            const targetHero = this.pickPriorityTarget(aliveHeroes);
             const dmg = this.applyDamage(boss, targetHero, choice);
-            this.log(
-              `${boss.name} used ${choice.name} on ${targetHero.name} for ${dmg}.`
-            );
-            if (
-              choice.execute &&
-              targetHero.hp / targetHero.maxHp < choice.execute
-            ) {
-              targetHero.hp = Math.max(0, targetHero.hp - 40);
+            if (choice.id === "apexPredation") {
               this.log(
-                `${choice.name} tears through the weakened ${targetHero.name}!`
+                `Dragon used a devastating attack on ${targetHero.name} for ${dmg} damage.`
+              );
+            } else {
+              this.log(
+                `Dragon attacked ${targetHero.name} with a basic strike for ${dmg} damage.`
               );
             }
           }
