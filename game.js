@@ -4,6 +4,8 @@ const HERO_REGEN = 3;
 const BOSS_REGEN = 4;
 const SINGLE_HEAL_RATIO = 0.38;
 const GROUP_HEAL_RATIO = 0.24;
+const LIMIT_GAIN_TAKEN = 10;
+const LIMIT_GAIN_DEALT = 5;
 
 const DIFFICULTIES = {
   easy: { bossHp: 0.8, bossAtk: 0.9, heroHp: 1.2 },
@@ -69,6 +71,7 @@ const heroConfigs = [
         id: "powerSlash",
         name: "Power Slash",
         cost: 14,
+        cooldown: 2,
         target: "enemy",
         type: "physical",
         power: 1.4,
@@ -78,6 +81,7 @@ const heroConfigs = [
         id: "armorBreak",
         name: "Armor Break",
         cost: 16,
+        cooldown: 3,
         target: "enemy",
         type: "physical",
         power: 1.1,
@@ -88,10 +92,33 @@ const heroConfigs = [
         id: "rally",
         name: "Rally",
         cost: 10,
+        cooldown: 2,
         target: "allies",
         type: "buff",
         buff: { atkUp: 0.2, duration: 2 },
         description: "Encourage allies, boosting attack for 2 turns.",
+      },
+      {
+        id: "markPrey",
+        name: "Mark Prey",
+        cost: 12,
+        cooldown: 3,
+        target: "enemy",
+        type: "physical",
+        power: 0.9,
+        debuff: { mark: true, duration: 3 },
+        description: "Tag the dragon, making it vulnerable to focused magic.",
+      },
+      {
+        id: "skyCleave",
+        name: "Sky Cleave",
+        cost: 0,
+        target: "enemy",
+        type: "physical",
+        power: 2.2,
+        requiresLimit: 100,
+        cooldown: 0,
+        description: "Limit: a heroic leap that splits scales apart.",
       },
     ],
   },
@@ -110,6 +137,7 @@ const heroConfigs = [
         id: "arcaneBolt",
         name: "Arcane Bolt",
         cost: 12,
+        cooldown: 1,
         target: "enemy",
         type: "magic",
         power: 1.3,
@@ -119,9 +147,11 @@ const heroConfigs = [
         id: "firestorm",
         name: "Firestorm",
         cost: 22,
+        cooldown: 3,
         target: "all-enemies",
         type: "magic",
         power: 1.1,
+        element: "fire",
         description:
           "AoE inferno that scorches the dragon and leaves burning embers.",
         dot: { amount: 6, duration: 2 },
@@ -130,6 +160,7 @@ const heroConfigs = [
         id: "manaSurge",
         name: "Mana Surge",
         cost: 18,
+        cooldown: 3,
         target: "self",
         type: "buff",
         buff: { magUp: 0.3, duration: 2 },
@@ -143,6 +174,28 @@ const heroConfigs = [
         type: "magic",
         power: 0.8,
         description: "Low-cost spark to conserve mana.",
+      },
+      {
+        id: "timeWarp",
+        name: "Time Warp",
+        cost: 16,
+        cooldown: 4,
+        target: "allies",
+        type: "buff",
+        buff: { spdUp: 0.2, duration: 2 },
+        description: "Bend time to quicken allied movements for 2 turns.",
+      },
+      {
+        id: "meteorFlare",
+        name: "Meteor Flare",
+        cost: 0,
+        cooldown: 0,
+        target: "enemy",
+        type: "magic",
+        power: 2.6,
+        element: "fire",
+        requiresLimit: 100,
+        description: "Limit: call a burning star that rends obsidian scales.",
       },
     ],
   },
@@ -161,6 +214,7 @@ const heroConfigs = [
         id: "singleHeal",
         name: "Single Heal",
         cost: 14,
+        cooldown: 1,
         target: "ally",
         type: "heal",
         healRatio: SINGLE_HEAL_RATIO,
@@ -170,6 +224,7 @@ const heroConfigs = [
         id: "groupHeal",
         name: "Group Heal",
         cost: 18,
+        cooldown: 2,
         target: "allies",
         type: "heal",
         healRatio: GROUP_HEAL_RATIO,
@@ -179,6 +234,7 @@ const heroConfigs = [
         id: "cleanse",
         name: "Cleanse",
         cost: 12,
+        cooldown: 1,
         target: "ally",
         type: "cleanse",
         description: "Remove harmful debuffs from one ally.",
@@ -191,6 +247,17 @@ const heroConfigs = [
         type: "magic",
         power: 0.6,
         description: "Gentle strike of light magic.",
+      },
+      {
+        id: "divineLight",
+        name: "Divine Light",
+        cost: 0,
+        cooldown: 0,
+        target: "allies",
+        type: "heal",
+        healRatio: 0.45,
+        requiresLimit: 100,
+        description: "Limit: bathe allies in restoring light and mending wounds.",
       },
     ],
   },
@@ -209,16 +276,18 @@ const heroConfigs = [
         id: "bash",
         name: "Bash",
         cost: 8,
+        cooldown: 1,
         target: "enemy",
         type: "physical",
         power: 1.0,
         description: "Shield bash with chance to shake the dragon.",
-        debuff: { dmgDown: 0.15, duration: 1 },
+        debuff: { dmgDown: 0.15, spdDown: 0.2, duration: 2 },
       },
       {
         id: "guard",
         name: "Guard",
         cost: 10,
+        cooldown: 2,
         target: "self",
         type: "buff",
         buff: { guard: 0.4, duration: 1 },
@@ -228,6 +297,7 @@ const heroConfigs = [
         id: "taunt",
         name: "Provoke",
         cost: 12,
+        cooldown: 3,
         target: "self",
         type: "taunt",
         duration: 2,
@@ -237,11 +307,23 @@ const heroConfigs = [
         id: "shieldWall",
         name: "Shield Wall",
         cost: 16,
+        cooldown: 4,
         target: "allies",
         type: "buff",
         buff: { guardTeam: 0.2, duration: 2 },
         description:
           "Raise shields for the whole squad, reducing damage for 2 turns.",
+      },
+      {
+        id: "stoneBulwark",
+        name: "Stone Bulwark",
+        cost: 0,
+        cooldown: 0,
+        target: "allies",
+        type: "buff",
+        buff: { guardTeam: 0.35, duration: 2 },
+        requiresLimit: 100,
+        description: "Limit: form an unbreakable wall to protect everyone.",
       },
     ],
   },
@@ -295,6 +377,32 @@ const bossConfig = {
       pattern: "single",
       weight: 1,
     },
+    {
+      id: "scaleHarden",
+      name: "Scale Harden",
+      cost: 16,
+      type: "buff",
+      pattern: "self",
+      buff: { defUp: 0.3, duration: 2 },
+      weight: 2,
+    },
+    {
+      id: "roaringSilence",
+      name: "Roaring Silence",
+      cost: 20,
+      type: "magic",
+      pattern: "silence",
+      weight: 2,
+    },
+    {
+      id: "recklessFury",
+      name: "Reckless Fury",
+      cost: 10,
+      type: "buff",
+      pattern: "berserk",
+      buff: { atkUp: 0.35, defDown: 0.2, duration: 2 },
+      weight: 2,
+    },
   ],
 };
 
@@ -325,6 +433,7 @@ class Game {
     this.bossEnragedNotified = false;
     this.bossEnraged = false;
     this.bossWindupSkill = null;
+    this.bossPhase = 1;
     this.targeting = false;
     this.currentSceneIndex = 0;
     this.currentCharIndex = 0;
@@ -332,6 +441,10 @@ class Game {
     this.autoAdvanceTimeout = null;
     this.isTyping = false;
     this.isPaused = false;
+    this.turnCount = 0;
+    this.totalDamageByHero = {};
+    this.totalHealingByHero = {};
+    this.highestHit = 0;
 
     this.bindDifficultyControls();
     this.bindMenu();
@@ -348,6 +461,7 @@ class Game {
         options.forEach((b) => b.classList.remove("active"));
         btn.classList.add("active");
         this.difficulty = btn.dataset.difficulty;
+        this.updateBestRunDisplay();
       });
     });
   }
@@ -382,18 +496,26 @@ class Game {
     this.boss = this.buildBoss();
     this.turnOrder = [];
     this.turnIndex = 0;
+    this.turnCount = 0;
+    this.totalDamageByHero = { soldier: 0, mage: 0, healer: 0, tank: 0 };
+    this.totalHealingByHero = { soldier: 0, mage: 0, healer: 0, tank: 0 };
+    this.highestHit = 0;
     this.state = "start";
     this.pendingSkill = null;
     this.bossEnragedNotified = false;
     this.bossEnraged = false;
     this.bossWindupSkill = null;
+    this.bossPhase = 1;
     this.targeting = false;
     this.closeTargetSelect();
     document.getElementById("gameOver").style.display = "none";
+    const summary = document.getElementById("runSummary");
+    if (summary) summary.innerHTML = "";
     this.logEl.innerHTML = "";
     this.renderHeroes();
     this.rebuildTurnOrder();
     this.updateUI();
+    this.updateBestRunDisplay();
   }
 
   buildHeroes() {
@@ -406,6 +528,8 @@ class Game {
         hp: maxHp,
         mp: h.maxMp,
         status: {},
+        limit: 0,
+        skills: h.skills.map((s) => ({ ...s, currentCd: 0 })),
       };
     });
   }
@@ -544,6 +668,7 @@ class Game {
           <div class="meter-label"><span>MP</span><span id="${hero.id}MpText"></span></div>
           <div class="meter-bar"><div class="meter-fill mp-fill" id="${hero.id}MpBar"></div></div>
         </div>
+        <div class="limit-line" id="${hero.id}Limit">Limit: 0%</div>
         <div class="stat-grid">
           <div class="stat-chip">ATK<strong>${hero.atk}</strong></div>
           <div class="stat-chip">DEF<strong>${hero.def}</strong></div>
@@ -586,6 +711,9 @@ class Game {
         this.advanceTurn();
         return;
       }
+      hero.skills.forEach((s) => {
+        if (s.currentCd > 0) s.currentCd -= 1;
+      });
       this.waitingText.textContent = `${hero.name}'s turn`;
       this.renderSkillBar(hero);
     }
@@ -603,9 +731,18 @@ class Game {
     this.renderTurnNodes();
   }
 
+  getEffectiveSpd(unit) {
+    let spd = unit.spd || 10;
+    if (unit.status?.spdUp) spd = Math.round(spd * 1.2);
+    if (unit.status?.spdDown) spd = Math.round(spd * 0.8);
+    return spd;
+  }
+
   rebuildTurnOrder() {
     const livingUnits = [...this.heroes, this.boss].filter((u) => u.hp > 0);
-    livingUnits.sort((a, b) => (b.spd || 10) - (a.spd || 10));
+    livingUnits.sort(
+      (a, b) => this.getEffectiveSpd(b) - this.getEffectiveSpd(a)
+    );
     this.turnOrder = livingUnits.map((u) => u.id);
     this.turnIndex = 0;
     this.renderTurnNodes();
@@ -633,9 +770,26 @@ class Game {
     hero.skills.forEach((skill) => {
       const btn = document.createElement("button");
       btn.className = "skill-button";
-      btn.innerHTML = `<div><strong>${skill.name}</strong></div>
-        <div class="skill-meta"><span>${skill.target}</span><span>MP ${skill.cost}</span></div>`;
-      btn.disabled = hero.mp < skill.cost || hero.hp <= 0;
+      const isSilenced = hero.status?.silence && skill.type === "magic";
+      const onCooldown = skill.currentCd && skill.currentCd > 0;
+      const needsLimit = skill.requiresLimit && hero.limit < skill.requiresLimit;
+      btn.disabled =
+        hero.mp < skill.cost ||
+        hero.hp <= 0 ||
+        onCooldown ||
+        needsLimit ||
+        isSilenced;
+      btn.innerHTML = `
+        <div><strong>${skill.name}</strong></div>
+        <div class="skill-meta">
+          <span>${skill.target}${needsLimit ? " · Limit" : ""}${
+        isSilenced ? " · Silenced" : ""
+      }</span>
+          <span>MP ${skill.cost}${onCooldown ? ` · CD ${skill.currentCd}` : ""}${
+        skill.requiresLimit ? ` · Limit ${skill.requiresLimit}%` : ""
+      }</span>
+        </div>
+      `;
       btn.addEventListener("mouseenter", () => {
         this.showSkillInfo(skill, btn);
       });
@@ -661,9 +815,12 @@ class Game {
         : skill.target === "allies"
         ? "All Allies"
         : "Self";
+    const metaParts = [targetLabel, `MP ${skill.cost}`];
+    if (skill.cooldown) metaParts.push(`CD ${skill.cooldown}`);
+    if (skill.requiresLimit) metaParts.push(`Limit ${skill.requiresLimit}%`);
     this.skillInfo.innerHTML = `
       <div class="skill-tooltip-title">${skill.name}</div>
-      <div class="skill-tooltip-meta">${targetLabel} · MP ${skill.cost}</div>
+      <div class="skill-tooltip-meta">${metaParts.join(" · ")}</div>
       <div class="skill-tooltip-text">${skill.description}</div>
     `;
     this.skillInfo.style.display = "block";
@@ -706,6 +863,7 @@ class Game {
     this.targetOptions.innerHTML = "";
     targets.forEach((t) => {
       const btn = document.createElement("button");
+      btn.className = "target-btn";
       btn.textContent = `${t.name} (${t.hp}/${t.maxHp})`;
       btn.addEventListener("click", () => {
         this.executeSkill(this.pendingSkill.hero, this.pendingSkill.skill, t);
@@ -784,8 +942,16 @@ class Game {
     if (target.status?.defDown) {
       modifier -= target.status.defDown.amount;
     }
+    if (target.status?.defUp) {
+      modifier += target.status.defUp.amount;
+    }
 
     return Math.max(1, Math.round(baseDef * modifier));
+  }
+
+  gainLimit(hero, amount) {
+    if (!hero || hero.id === "boss") return;
+    hero.limit = Math.min(100, (hero.limit || 0) + amount);
   }
 
   applyDamage(source, target, skill) {
@@ -802,6 +968,7 @@ class Game {
     const guardTeam = target.status?.guardTeam?.amount || 0;
     let synergyMulti = 1;
     if (!isMagic && target.status?.defDown) synergyMulti += 0.15;
+    if (target.status?.mark && skill.element === "fire") synergyMulti += 0.2;
     if (source.id === "tank" && this.boss.status?.dot && target.id === "boss") {
       synergyMulti += 0.1;
     }
@@ -813,6 +980,15 @@ class Game {
     );
     const finalDamage = Math.max(8, Math.round(damage * enrageMultiplier));
     target.hp = Math.max(0, target.hp - finalDamage);
+    if (source.id !== "boss") {
+      this.totalDamageByHero[source.id] =
+        (this.totalDamageByHero[source.id] || 0) + finalDamage;
+      this.highestHit = Math.max(this.highestHit, finalDamage);
+      this.gainLimit(source, LIMIT_GAIN_DEALT);
+    }
+    if (target.id !== "boss") {
+      this.gainLimit(target, LIMIT_GAIN_TAKEN);
+    }
     if (skill.debuff) {
       target.status = target.status || {};
       Object.keys(skill.debuff).forEach((key) => {
@@ -838,10 +1014,17 @@ class Game {
     const ratio = skill.healRatio || SINGLE_HEAL_RATIO;
     const amount = Math.round(target.maxHp * ratio);
     target.hp = Math.min(target.maxHp, target.hp + amount);
+    if (source.id !== "boss") {
+      this.totalHealingByHero[source.id] =
+        (this.totalHealingByHero[source.id] || 0) + amount;
+    }
     return amount;
   }
 
   executeSkill(user, skill, target = null) {
+    if (skill.currentCd && skill.currentCd > 0) return;
+    if (skill.requiresLimit && (user.limit || 0) < skill.requiresLimit) return;
+    if (user.status?.silence && skill.type === "magic") return;
     if (user.mp < skill.cost) return;
     user.mp -= skill.cost;
     if (!target) target = skill.target === "self" ? user : null;
@@ -894,11 +1077,20 @@ class Game {
       this.log(`${user.name} provokes the dragon!`);
     }
 
+    if (skill.cooldown) {
+      skill.currentCd = skill.cooldown;
+    }
+    if (skill.requiresLimit) {
+      user.limit = 0;
+    }
+
     this.resolveDot();
     this.updateUI();
     this.checkEnd();
     if (this.state === "playing") {
       this.advanceTurn();
+    } else {
+      this.turnCount += 1;
     }
   }
 
@@ -929,6 +1121,7 @@ class Game {
       return;
     }
 
+    this.updateBossPhase();
     this.isDragonEnraged();
     let choice = this.bossWindupSkill;
 
@@ -967,6 +1160,42 @@ class Game {
           const splashDmg = this.applyDamage(boss, hero, splashSkill);
           this.log(`Splash fire singed ${hero.name} for ${splashDmg} damage.`);
         });
+    } else if (choice.pattern === "self") {
+      boss.status = boss.status || {};
+      Object.keys(choice.buff || {}).forEach((key) => {
+        if (key !== "duration") {
+          boss.status[key] = {
+            amount: choice.buff[key],
+            duration: choice.buff.duration,
+          };
+        }
+      });
+      if (boss.status.defDown) delete boss.status.defDown;
+      this.log("The dragon hardens its scales and shrugs off weaknesses.");
+    } else if (choice.pattern === "berserk") {
+      boss.status = boss.status || {};
+      Object.keys(choice.buff || {}).forEach((key) => {
+        if (key !== "duration") {
+          boss.status[key] = {
+            amount: choice.buff[key],
+            duration: choice.buff.duration,
+          };
+        }
+      });
+      this.log("The dragon embraces reckless fury, trading defense for power!");
+    } else if (choice.pattern === "silence") {
+      const preferredTargets = aliveHeroes.filter(
+        (h) => h.id === "mage" || h.id === "healer"
+      );
+      const silenced = (preferredTargets.length ? preferredTargets : aliveHeroes).slice(
+        0,
+        2
+      );
+      silenced.forEach((hero) => {
+        hero.status = hero.status || {};
+        hero.status.silence = { amount: 1, duration: 2 };
+        this.log(`${hero.name} is engulfed by a silencing roar!`);
+      });
     } else {
       const targetHero = this.selectDragonTarget(aliveHeroes) || aliveHeroes[0];
       const dmg = this.applyDamage(boss, targetHero, choice);
@@ -985,25 +1214,29 @@ class Game {
     this.updateUI();
     this.checkEnd();
     if (this.state === "playing") this.advanceTurn();
+    else this.turnCount += 1;
   }
 
   chooseDragonSkill() {
     const enraged = this.isDragonEnraged() || this.bossEnraged;
-    const weightedSkills = (
-      enraged
-        ? this.boss.skills.map((s) => ({
-            ...s,
-            weight:
-              s.id === "cinderWave"
-                ? (s.weight || 1) + 2
-                : s.id === "fieryRend"
-                ? (s.weight || 1) + 1
-                : s.id === "obliterate"
-                ? (s.weight || 1) + 1
-                : s.weight || 1,
-          }))
-        : this.boss.skills
-    ).filter((s) => s.cost === 0 || this.boss.mp >= s.cost);
+    const weightedSkills = this.boss.skills
+      .filter((s) => s.cost === 0 || this.boss.mp >= s.cost)
+      .map((s) => {
+        let weight = s.weight || 1;
+        if (this.bossPhase === 1) {
+          if (s.id === "crushingClaw" || s.id === "fieryRend") weight += 1;
+        } else if (this.bossPhase === 2) {
+          if (s.id === "scaleHarden") weight += 2;
+          if (s.id === "roaringSilence") weight += 2;
+          if (s.id === "obliterate") weight = Math.max(1, weight - 1);
+        } else {
+          if (s.id === "cinderWave" || s.id === "fieryRend") weight += 2;
+          if (s.id === "obliterate") weight += 1;
+          if (s.id === "recklessFury") weight += 2;
+        }
+        if (enraged && s.pattern === "aoe") weight += 1;
+        return { ...s, weight };
+      });
 
     const pool = weightedSkills.length ? weightedSkills : [this.boss.skills[0]];
     const weighted = [];
@@ -1012,6 +1245,23 @@ class Game {
       for (let i = 0; i < weight; i++) weighted.push(skill);
     });
     return weighted[Math.floor(Math.random() * weighted.length)];
+  }
+
+  updateBossPhase() {
+    const ratio = this.boss.hp / this.boss.maxHp;
+    let newPhase;
+    if (ratio > 0.6) newPhase = 1;
+    else if (ratio > 0.3) newPhase = 2;
+    else newPhase = 3;
+
+    if (newPhase !== this.bossPhase) {
+      this.bossPhase = newPhase;
+      if (newPhase === 2) {
+        this.log("The dragon hardens its scales, changing its pattern!");
+      } else if (newPhase === 3) {
+        this.log("The dragon goes berserk, fighting with reckless fury!");
+      }
+    }
   }
 
   selectDragonTarget(aliveHeroes) {
@@ -1038,6 +1288,7 @@ class Game {
   }
 
   advanceTurn() {
+    this.turnCount += 1;
     const nextIndex = (this.turnIndex + 1) % this.turnOrder.length;
     this.applyEndOfTurnRegen();
     if (nextIndex === 0) {
@@ -1061,8 +1312,12 @@ class Game {
     if (this.boss.status?.dot) bossLabels.push(`Burning (${this.boss.status.dot.duration})`);
     if (this.boss.status?.defDown)
       bossLabels.push(`DEF↓ (${this.boss.status.defDown.duration})`);
+    if (this.boss.status?.defUp)
+      bossLabels.push(`DEF↑ (${this.boss.status.defUp.duration})`);
     if (this.boss.status?.taunt)
       bossLabels.push(`Provoked (${this.boss.status.taunt.duration})`);
+    if (this.boss.status?.mark)
+      bossLabels.push(`Marked (${this.boss.status.mark.duration})`);
     bossStatus.style.display = bossLabels.length ? "inline-block" : "none";
     bossStatus.textContent = bossLabels.join(" · ");
 
@@ -1086,10 +1341,88 @@ class Game {
         format("Shielded", h.status.guardTeam),
         format("ATK↓", h.status.atkDown),
         format("DEF↓", h.status.defDown),
+        format("SPD↑", h.status.spdUp),
+        format("SPD↓", h.status.spdDown),
+        format("Silenced", h.status.silence),
       ].filter(Boolean);
       status.textContent = labels.join(" · ");
       status.style.display = labels.length ? "inline-block" : "none";
+      const limitEl = document.getElementById(`${h.id}Limit`);
+      if (limitEl) limitEl.textContent = `Limit: ${Math.round(h.limit)}%`;
     });
+  }
+
+  renderRunSummary() {
+    const summary = document.getElementById("runSummary");
+    if (!summary) return;
+    const heroDamage = this.heroes
+      .map(
+        (h) =>
+          `<div class="summary-line"><span>${h.name} dmg</span><span>${
+            this.totalDamageByHero[h.id] || 0
+          }</span></div>`
+      )
+      .join("");
+    const heroHealing = this.heroes
+      .map(
+        (h) =>
+          `<div class="summary-line"><span>${h.name} healing</span><span>${
+            this.totalHealingByHero[h.id] || 0
+          }</span></div>`
+      )
+      .join("");
+    summary.innerHTML = `
+      <h4>Run Stats</h4>
+      <div class="summary-line"><span>Turns</span><span>${this.turnCount}</span></div>
+      <div class="summary-line"><span>Highest Hit</span><span>${this.highestHit}</span></div>
+      ${heroDamage}
+      ${heroHealing}
+    `;
+  }
+
+  getBestRunKey() {
+    return `celestia_bestRun_${this.difficulty}`;
+  }
+
+  getBestRunRecord() {
+    try {
+      const existing = localStorage.getItem(this.getBestRunKey());
+      return existing ? JSON.parse(existing) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  saveBestRun() {
+    const current = {
+      difficulty: this.difficulty,
+      victory: true,
+      turnCount: this.turnCount,
+      timestamp: Date.now(),
+    };
+    const best = this.getBestRunRecord();
+    if (!best || current.turnCount < best.turnCount) {
+      try {
+        localStorage.setItem(this.getBestRunKey(), JSON.stringify(current));
+      } catch (e) {
+        // ignore storage errors
+      }
+    }
+    this.updateBestRunDisplay();
+  }
+
+  updateBestRunDisplay() {
+    const display = document.getElementById("bestRunDisplay");
+    if (!display) return;
+    const best = this.getBestRunRecord();
+    if (!best) {
+      display.style.display = "none";
+      return;
+    }
+    const label =
+      best.difficulty.charAt(0).toUpperCase() + best.difficulty.slice(1);
+    display.style.display = "block";
+    display.textContent = `Best (${label}): ${best.turnCount} turns`;
   }
 
   checkEnd() {
@@ -1101,6 +1434,8 @@ class Game {
       document.getElementById("gameOverTitle").className = "victory";
       document.getElementById("gameOverText").textContent =
         "The dragon collapses under your tactics.";
+      this.renderRunSummary();
+      this.saveBestRun();
     } else if (!heroesAlive) {
       this.state = "defeat";
       document.getElementById("gameOver").style.display = "flex";
@@ -1108,6 +1443,7 @@ class Game {
       document.getElementById("gameOverTitle").className = "defeat";
       document.getElementById("gameOverText").textContent =
         "Your party falls to the dragon's rage.";
+      this.renderRunSummary();
     }
   }
 }
