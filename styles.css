@@ -127,6 +127,15 @@
         flex-wrap: wrap;
       }
 
+      .best-run {
+        margin-top: 10px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px dashed rgba(116, 240, 237, 0.3);
+        color: var(--muted);
+        background: rgba(255, 255, 255, 0.03);
+      }
+
       .option-button {
         padding: 8px 12px;
         border-radius: 10px;
@@ -471,7 +480,7 @@
         flex: 1;
         overflow: hidden;
         display: flex;
-        flex-direction: column-reverse;
+        flex-direction: column;
         gap: 6px;
         max-height: 120px;
       }
@@ -516,6 +525,12 @@
         transform: translateY(-10px) scale(1.03);
         border-color: var(--primary);
         box-shadow: 0 20px 40px rgba(116, 240, 237, 0.28);
+      }
+
+      .limit-line {
+        margin-top: 6px;
+        color: var(--secondary);
+        font-size: 0.9rem;
       }
 
       .hero-top {
@@ -788,6 +803,28 @@
       }
       .defeat {
         color: var(--accent);
+      }
+
+      .summary-block {
+        margin-top: 12px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 12px;
+        text-align: left;
+        color: var(--text);
+      }
+
+      .summary-block h4 {
+        color: var(--secondary);
+        margin-bottom: 8px;
+      }
+
+      .summary-line {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 4px;
+        color: var(--muted);
       }
 
       .restart {
