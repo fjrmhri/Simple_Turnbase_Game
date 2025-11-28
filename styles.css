@@ -460,7 +460,7 @@ body {
   top: 8px;
   left: 18px;
   width: 280px;
-  max-height: 150px;
+  max-height: 170px;
   background: var(--panel);
   border-radius: 14px;
   border: 1px solid var(--line);
