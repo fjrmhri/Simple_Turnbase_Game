@@ -287,10 +287,10 @@ body {
   position: relative;
   z-index: 2;
   width: 100%;
-  min-height: 92vh;
+  min-height: 86vh;
   display: grid;
   grid-template-rows: auto 1fr auto;
-  gap: 10px;
+  gap: 8px;
   padding: 4px 0 12px;
 }
 
@@ -304,9 +304,9 @@ body {
 
 .turn-track {
   position: relative;
-  width: 520px;
+  width: 440px;
   max-width: 78vw;
-  height: 66px;
+  height: 56px;
 }
 
 .turn-line {
@@ -325,8 +325,8 @@ body {
 }
 
 .turn-node {
-  width: 58px;
-  height: 58px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   border: 2px solid var(--line);
   background: rgba(255, 255, 255, 0.05);
@@ -365,9 +365,9 @@ body {
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 16px;
-  width: 340px;
+  width: 310px;
   max-width: 100%;
-  padding: 14px;
+  padding: 12px;
   box-shadow: var(--shadow);
 }
 
@@ -378,8 +378,8 @@ body {
 }
 
 .boss-avatar {
-  width: 100px;
-  height: 100px;
+  width: 90px;
+  height: 90px;
   border-radius: 14px;
   overflow: hidden;
   background: #0c142f;
@@ -460,7 +460,7 @@ body {
   top: 8px;
   left: 18px;
   width: 280px;
-  max-height: 170px;
+  max-height: 150px;
   background: var(--panel);
   border-radius: 14px;
   border: 1px solid var(--line);
@@ -482,7 +482,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-height: 120px;
+  max-height: 100px;
 }
 
 .log-line {
@@ -511,11 +511,11 @@ body {
 }
 
 .hero-card {
-  width: 220px;
+  width: 200px;
   background: var(--card);
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 10px;
+  padding: 8px;
   box-shadow: var(--shadow);
   transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
 }
@@ -539,8 +539,8 @@ body {
 }
 
 .hero-avatar {
-  width: 60px;
-  height: 60px;
+  width: 52px;
+  height: 52px;
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -565,8 +565,8 @@ body {
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-  margin-top: 8px;
+  gap: 4px;
+  margin-top: 6px;
 }
 
 .stat-chip {
@@ -574,9 +574,9 @@ body {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 8px;
-  padding: 5px 4px;
+  padding: 4px 3px;
   color: var(--muted);
-  font-size: 0.83rem;
+  font-size: 0.8rem;
 }
 
 .stat-chip strong {
@@ -586,22 +586,22 @@ body {
 
 .skill-bar {
   margin: 8px auto 0;
-  width: clamp(780px, 70vw, 920px);
+  width: clamp(680px, 70vw, 860px);
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--line);
   border-radius: 14px;
-  padding: 8px 10px;
+  padding: 6px 8px;
   box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   position: relative;
 }
 
 .skill-buttons {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 6px;
 }
 
 .skill-button {
@@ -612,12 +612,12 @@ body {
   );
   border: 1px solid rgba(116, 240, 237, 0.4);
   border-radius: 10px;
-  padding: 8px;
+  padding: 6px;
   color: var(--text);
   cursor: pointer;
   text-align: left;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
-  font-size: 0.97rem;
+  font-size: 0.9rem;
 }
 
 .skill-button:hover:not(:disabled) {
@@ -634,7 +634,7 @@ body {
   display: flex;
   justify-content: space-between;
   color: var(--muted);
-  font-size: 0.88rem;
+  font-size: 0.8rem;
 }
 
 .skill-info {
@@ -667,6 +667,26 @@ body {
 
 .skill-tooltip-text {
   line-height: 1.25;
+}
+
+@media (max-width: 1200px) {
+  body {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 900px) {
+  body {
+    font-size: 13px;
+  }
+
+  .hero-card {
+    width: 180px;
+  }
+
+  .boss-card {
+    width: 290px;
+  }
 }
 
 .target-layer {
