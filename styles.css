@@ -125,6 +125,8 @@ body {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
 }
 
 .best-run {
@@ -159,7 +161,7 @@ body {
 }
 
 .start-button {
-  padding: 10px 22px;
+  padding: 8px 16px;
   background: linear-gradient(
     135deg,
     rgba(116, 240, 237, 0.9),
@@ -168,6 +170,7 @@ body {
   color: #03101c;
   border: none;
   border-radius: 12px;
+  font-family: "Monocraft", monospace;
   font-weight: 700;
   font-size: 1rem;
   cursor: pointer;

@@ -10,20 +10,29 @@
     <div class="game-shell">
       <div class="start-screen" id="startScreen">
         <div class="start-panel">
-          <h1>Celestia Clash</h1>
+          <h1>Kampar Clash</h1>
           <p>
-            Turn-based RPG demo. Command your squad and break the dragon's fury.
+            Turn-based RPG demo. Command your squad and break the naga kampar.
           </p>
           <div class="settings-card">
             <div class="setting-group">
-              <div class="setting-label">Difficulty</div>
               <div class="setting-options" id="difficultyOptions">
-                <button class="option-button active" data-difficulty="normal">Normal</button>
-                <button class="option-button" data-difficulty="easy">Easy</button>
-                <button class="option-button" data-difficulty="hard">Hard</button>
+                <button class="option-button" data-difficulty="easy">
+                  Easy
+                </button>
+                <button class="option-button active" data-difficulty="normal">
+                  Normal
+                </button>
+                <button class="option-button" data-difficulty="hard">
+                  Hard
+                </button>
               </div>
             </div>
-            <div class="best-run" id="bestRunDisplay" style="display: none"></div>
+            <div
+              class="best-run"
+              id="bestRunDisplay"
+              style="display: none"
+            ></div>
           </div>
           <button class="start-button" id="startButton">Start</button>
         </div>
@@ -68,7 +77,7 @@
                       <img src="gif/dragon.gif" alt="Dragon" />
                     </div>
                     <div class="boss-meta">
-                      <h2>Obsidian Dragon</h2>
+                      <h2>Naga Kampar</h2>
                       <div class="meter">
                         <div class="meter-label">
                           <span>HP</span>
@@ -103,8 +112,12 @@
             <div class="hero-row" id="heroRow"></div>
             <div class="skill-bar" id="skillBar">
               <div class="skill-buttons" id="skillButtons"></div>
-              <div class="skill-info" id="skillInfo" style="display: none"></div>
-              <div class="waiting-text" id="waitingText">Waiting...</div>
+              <div
+                class="skill-info"
+                id="skillInfo"
+                style="display: none"
+              ></div>
+              <div class="waiting-text" id="waitingText">Sabar...</div>
             </div>
           </div>
         </div>
@@ -123,13 +136,14 @@
       <div class="game-over" id="gameOver">
         <div class="game-over-card">
           <h2 id="gameOverTitle" class="victory">Victory</h2>
-          <p id="gameOverText">Your team stands triumphant!</p>
+          <p id="gameOverText">awokawokawok!</p>
           <div class="summary-block" id="runSummary"></div>
           <button class="restart" id="restart">Restart</button>
         </div>
       </div>
     </div>
 
+    <script src="game_config.js"></script>
     <script src="game.js"></script>
   </body>
 </html>
