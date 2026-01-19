@@ -24,12 +24,22 @@ Simple Turnbase Game: Kampar Clash adalah demo RPG turn-based satu pertempuran y
 
 ## Fitur Utama
 
-- Layar pembuka dengan pengaturan tingkat kesulitan (Easy, Normal, Hard) serta penyimpanan hasil run terbaik per tingkat via `localStorage`.
-- Urutan cerita singkat menggunakan potret karakter sebelum pertarungan dimulai yang bisa dijeda atau dilewati.
-- Empat hero yang dapat dimainkan (Soldier, Mage, Healer, Tank) dengan peran, skill, biaya MP, cooldown, buff/debuff, dan skill limit berbeda.
-- Bos Naga Kampar dengan AI bertahap, perilaku enrage di 50% HP, interaksi silence/taunt, dan serangan AoE setelah charge.
-- Sistem giliran dinamis berbasis kecepatan yang divisualisasikan lewat tracker serta kontrol targeting untuk memilih musuh atau sekutu.
-- Status efek yang kaya (buff, debuff, damage-over-time, guard, limit gain) serta log pertempuran dan ringkasan hasil setelah game berakhir.
+### Core Gameplay
+- **Layar Pembuka** - Pengaturan tingkat kesulitan (Easy, Normal, Hard) dengan penyimpanan hasil run terbaik per tingkat via `localStorage`.
+- **Urutan Cerita** - Cutscene singkat menggunakan potret karakter sebelum pertarungan, bisa dijeda atau dilewati.
+- **Empat Hero** - Soldier (DPS), Mage (Magic DPS), Healer (Support), Tank (Defender) dengan peran, skill, biaya MP, cooldown, buff/debuff, dan limit breaks berbeda.
+- **Boss Naga Kampar** - AI bertahap (3 fase), enrage di 50% HP, interaksi silence/taunt, dan serangan AoE setelah charge.
+- **Sistem Giliran** - Turn order dinamis berbasis kecepatan (SPD) yang divisualisasikan lewat timeline tracker.
+- **Status Effects** - Buff, debuff, damage-over-time, guard, silence, mark, dan limit gain dengan visual icon indicators.
+
+### Strategic Enhancements (Version 2.0)
+- **🎯 Enemy Telegraph** - Boss menampilkan intent attack berikutnya untuk perencanaan strategi.
+- **💥 Synergy System** - Combo bonuses:
+  - Physical + DEF Down: +15% damage
+  - Fire + Mark: +20% damage  
+  - Tank + Burning Boss: +10% damage
+- **🎨 Enhanced UI** - Status icons dengan emoji, floating damage/heal numbers, categorized battle log.
+- **📊 Target Info** - Target selection menampilkan HP%, status effects, dan synergy previews.
 
 ## Teknologi yang Digunakan
 
@@ -58,10 +68,23 @@ Simple Turnbase Game: Kampar Clash adalah demo RPG turn-based satu pertempuran y
 
 - `index.html` — Halaman utama yang memuat struktur UI, layar start, cerita, arena, dan dialog game over.
 - `styles.css` — Aturan gaya, layout, animasi, serta referensi font kustom.
-- `game.js` — Definisi karakter, skill, AI bos, sistem status, tracker giliran, log pertempuran, dan penyimpanan hasil.
-- `game_config.js` — Konfigurasi data game (karakter, boss, skill, pesan, dll).
+- `game.js` — Logika gameplay, AI, sistem status, tracker giliran, log pertempuran, dengan error handling.
+- `game_config.js` — Konfigurasi data game (karakter, boss, skill, pesan, constants).
+- `style_guide.md` — ⭐ **NEW** - Dokumentasi UI design tokens, color palette, typography, dan component patterns.
 - `gif/` — GIF animasi untuk tiap hero dan naga yang ditampilkan di UI.
 - `fonts/` — Berkas font Monocraft yang digunakan untuk nuansa retro.
+
+## What's New in Version 2.0
+
+✨ **6 Major Enhancements:**
+1. Enemy Telegraph System - Boss intent display
+2. Floating Combat Text - Animated damage/heal numbers  
+3. Enhanced Status Icons - Emoji-based visual indicators
+4. Battle Log Categorization - Color-coded message types
+5. Synergy System Feedback - Visual combo notifications
+6. Target Highlights - HP% and synergy previews
+
+📝 See [CHANGELOG.md](CHANGELOG.md) for detailed changes.
 
 ## Dokumentasi Lengkap
 

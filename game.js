@@ -10,48 +10,80 @@ const LIMIT_GAIN_DEALT = CONFIG.constants.LIMIT_GAIN_DEALT;
 
 class Game {
   constructor() {
-    this.heroRow = document.getElementById("heroRow");
-    this.skillButtons = document.getElementById("skillButtons");
-    this.skillInfo = document.getElementById("skillInfo");
-    this.skillBar = document.getElementById("skillBar");
-    this.waitingText = document.getElementById("waitingText");
-    this.targetLayer = document.getElementById("targetLayer");
-    this.targetOptions = document.getElementById("targetOptions");
-    this.targetCancel = document.getElementById("targetCancel");
-    this.turnNodes = document.getElementById("turnNodes");
-    this.logEl = document.getElementById("logBody");
-    this.startScreen = document.getElementById("startScreen");
-    this.storyScreen = document.getElementById("storyScreen");
-    this.battleScreen = document.getElementById("battleScreen");
-    this.storyName = document.getElementById("storyName");
-    this.storyText = document.getElementById("storyText");
-    this.storyPortrait = document.getElementById("storyPortrait");
-    this.storyPauseBtn = document.getElementById("storyPause");
-    this.storySkipBtn = document.getElementById("storySkip");
+    try {
+      // DOM element references with error checking
+      this.heroRow = document.getElementById("heroRow");
+      this.skillButtons = document.getElementById("skillButtons");
+      this.skillInfo = document.getElementById("skillInfo");
+      this.skillBar = document.getElementById("skillBar");
+      this.waitingText = document.getElementById("waitingText");
+      this.targetLayer = document.getElementById("targetLayer");
+      this.targetOptions = document.getElementById("targetOptions");
+      this.targetCancel = document.getElementById("targetCancel");
+      this.turnNodes = document.getElementById("turnNodes");
+      this.logEl = document.getElementById("logBody");
+      this.startScreen = document.getElementById("startScreen");
+      this.storyScreen = document.getElementById("storyScreen");
+      this.battleScreen = document.getElementById("battleScreen");
+      this.storyName = document.getElementById("storyName");
+      this.storyText = document.getElementById("storyText");
+      this.storyPortrait = document.getElementById("storyPortrait");
+      this.storyPauseBtn = document.getElementById("storyPause");
+      this.storySkipBtn = document.getElementById("storySkip");
+      this.bossIntentEl = document.getElementById("bossIntent");
 
-    this.difficulty = "normal";
-    this.state = "start";
-    this.pendingSkill = null;
-    this.bossEnragedNotified = false;
-    this.bossEnraged = false;
-    this.bossWindupSkill = null;
-    this.bossPhase = 1;
-    this.targeting = false;
-    this.currentSceneIndex = 0;
-    this.currentCharIndex = 0;
-    this.typingInterval = null;
-    this.autoAdvanceTimeout = null;
-    this.isTyping = false;
-    this.isPaused = false;
-    this.turnCount = 0;
-    this.totalDamageByHero = {};
-    this.totalHealingByHero = {};
-    this.highestHit = 0;
+      // Check critical elements
+      if (!this.heroRow || !this.logEl || !this.startScreen) {
+        throw new Error("Critical DOM elements missing. Check HTML structure.");
+      }
 
-    this.bindDifficultyControls();
-    this.bindMenu();
-    this.prepareNewRun();
-    this.showScreen("start");
+      this.difficulty = "normal";
+      this.state = "start";
+      this.pendingSkill = null;
+      this.bossEnragedNotified = false;
+      this.bossEnraged = false;
+      this.bossWindupSkill = null;
+      this.bossNextSkill = null;
+      this.bossPhase = 1;
+      this.targeting = false;
+      this.currentSceneIndex = 0;
+      this.currentCharIndex = 0;
+      this.typingInterval = null;
+      this.autoAdvanceTimeout = null;
+      this.isTyping = false;
+      this.isPaused = false;
+      this.turnCount = 0;
+      this.totalDamageByHero = {};
+      this.totalHealingByHero = {};
+      this.highestHit = 0;
+
+      this.bindDifficultyControls();
+      this.bindMenu();
+      this.prepareNewRun();
+      this.showScreen("start");
+    } catch (error) {
+      console.error("Game initialization failed:", error);
+      this.showError("Failed to initialize game. Please refresh the page.");
+    }
+  }
+
+  showError(message) {
+    const errorDiv = document.createElement("div");
+    errorDiv.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255, 107, 107, 0.95);
+      color: white;
+      padding: 20px 30px;
+      border-radius: 12px;
+      font-size: 1.1rem;
+      z-index: 9999;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    `;
+    errorDiv.textContent = message;
+    document.body.appendChild(errorDiv);
   }
 
   bindDifficultyControls() {
@@ -107,6 +139,7 @@ class Game {
     this.bossEnragedNotified = false;
     this.bossEnraged = false;
     this.bossWindupSkill = null;
+    this.bossNextSkill = null;
     this.bossPhase = 1;
     this.targeting = false;
     this.closeTargetSelect();
@@ -114,6 +147,7 @@ class Game {
     const summary = document.getElementById("runSummary");
     if (summary) summary.innerHTML = "";
     this.logEl.innerHTML = "";
+    if (this.bossIntentEl) this.bossIntentEl.style.display = "none";
     this.renderHeroes();
     this.rebuildTurnOrder();
     this.updateUI();
@@ -262,9 +296,9 @@ class Game {
     this.clearStoryTimers();
     this.state = "playing";
     this.showScreen("battle");
-    this.log(CONFIG.messages.tipArmorBreak);
-    this.log(CONFIG.messages.tipBurning);
-    this.log(CONFIG.messages.tipGuard);
+    this.log(CONFIG.messages.tipArmorBreak, "tip");
+    this.log(CONFIG.messages.tipBurning, "tip");
+    this.log(CONFIG.messages.tipGuard, "tip");
     this.startTurn();
   }
 
@@ -303,18 +337,76 @@ class Game {
     });
   }
 
-  log(message) {
+  log(message, type = "info") {
     const entry = document.createElement("div");
-    entry.className = "log-line";
-    entry.textContent = message;
+    entry.className = `log-line log-${type}`;
+    
+    // Add icon based on type
+    const icon = {
+      damage: "⚔️",
+      heal: "💚",
+      buff: "✨",
+      debuff: "💀",
+      phase: "🔔",
+      tip: "💡",
+      info: "📋"
+    }[type] || "•";
+    
+    entry.innerHTML = `<span class="log-icon">${icon}</span><span class="log-text">${message}</span>`;
     this.logEl.prepend(entry);
-    const maxEntries = 6;
+    const maxEntries = 8; // Increased from 6 to 8
     while (this.logEl.children.length > maxEntries) {
       this.logEl.removeChild(this.logEl.lastElementChild);
     }
   }
 
+  showFloatingText(targetId, text, type = "damage") {
+    if (!targetId || !text) return;
+    
+    const cardId = targetId === "boss" ? "bossCard" : `${targetId}Card`;
+    const card = document.getElementById(cardId);
+    if (!card) {
+      console.warn(`Card not found for target: ${targetId}`);
+      return;
+    }
+
+    const floater = document.createElement("div");
+    floater.className = `floating-text ${type}`;
+    floater.textContent = text;
+    
+    const rect = card.getBoundingClientRect();
+    floater.style.left = `${rect.left + rect.width / 2 - 20}px`;
+    floater.style.top = `${rect.top + 20}px`;
+    floater.style.position = "fixed";
+    
+    document.body.appendChild(floater);
+    setTimeout(() => floater.remove(), 1200);
+  }
+
+  updateBossIntent() {
+    if (!this.bossIntentEl) return;
+    
+    if (this.bossNextSkill) {
+      const skill = this.bossNextSkill;
+      let intentText = `Next: ${skill.name}`;
+      
+      if (skill.pattern === "aoe") {
+        intentText += " (All Heroes!)";
+      } else if (skill.pattern === "single-splash") {
+        intentText += " (Splash)";
+      } else if (skill.pattern === "silence") {
+        intentText += " (Silence!)";
+      }
+      
+      this.bossIntentEl.textContent = intentText;
+      this.bossIntentEl.style.display = "block";
+    } else {
+      this.bossIntentEl.style.display = "none";
+    }
+  }
+
   getHero(id) {
+    if (!id || !this.heroes) return null;
     return this.heroes.find((h) => h.id === id);
   }
 
@@ -393,9 +485,49 @@ class Game {
   renderSkillBar(hero) {
     this.skillButtons.innerHTML = "";
     this.skillInfo.style.display = "none";
+    
+    // Event delegation for better performance
+    const handleSkillClick = (e) => {
+      const btn = e.target.closest(".skill-button");
+      if (!btn || btn.disabled) return;
+      
+      const skillId = btn.dataset.skillId;
+      const skill = hero.skills.find(s => s.id === skillId);
+      if (skill) {
+        this.pendingSkill = { hero, skill };
+        this.prepareTargeting(hero, skill);
+      }
+    };
+    
+    const handleSkillHover = (e) => {
+      const btn = e.target.closest(".skill-button");
+      if (!btn) {
+        this.hideSkillInfo();
+        return;
+      }
+      const skillId = btn.dataset.skillId;
+      const skill = hero.skills.find(s => s.id === skillId);
+      if (skill) this.showSkillInfo(skill, btn);
+    };
+    
+    // Remove old listeners if any
+    this.skillButtons.removeEventListener("click", this._skillClickHandler);
+    this.skillButtons.removeEventListener("mouseover", this._skillHoverHandler);
+    this.skillButtons.removeEventListener("mouseout", this._skillLeaveHandler);
+    
+    // Store handlers for cleanup
+    this._skillClickHandler = handleSkillClick;
+    this._skillHoverHandler = handleSkillHover;
+    this._skillLeaveHandler = () => this.hideSkillInfo();
+    
+    this.skillButtons.addEventListener("click", this._skillClickHandler);
+    this.skillButtons.addEventListener("mouseover", this._skillHoverHandler);
+    this.skillButtons.addEventListener("mouseout", this._skillLeaveHandler);
+    
     hero.skills.forEach((skill) => {
       const btn = document.createElement("button");
       btn.className = "skill-button";
+      btn.dataset.skillId = skill.id;
       const isSilenced = hero.status?.silence && skill.type === "magic";
       const onCooldown = skill.currentCd && skill.currentCd > 0;
       const needsLimit =
@@ -417,16 +549,6 @@ class Game {
       }${skill.requiresLimit ? ` · Limit ${skill.requiresLimit}%` : ""}</span>
         </div>
       `;
-      btn.addEventListener("mouseenter", () => {
-        this.showSkillInfo(skill, btn);
-      });
-      btn.addEventListener("mouseleave", () => {
-        this.hideSkillInfo();
-      });
-      btn.addEventListener("click", () => {
-        this.pendingSkill = { hero, skill };
-        this.prepareTargeting(hero, skill);
-      });
       this.skillButtons.appendChild(btn);
     });
   }
@@ -488,10 +610,43 @@ class Game {
   openTargetSelect(targets) {
     this.targeting = true;
     this.targetOptions.innerHTML = "";
+    
+    const currentSkill = this.pendingSkill?.skill;
+    const currentHero = this.pendingSkill?.hero;
+    
     targets.forEach((t) => {
       const btn = document.createElement("button");
       btn.className = "target-btn";
-      btn.textContent = `${t.name} (${t.hp}/${t.maxHp})`;
+      
+      // Calculate HP percentage
+      const hpPct = Math.round((t.hp / t.maxHp) * 100);
+      
+      // Check for synergies
+      const synergies = [];
+      if (currentSkill && currentHero) {
+        // Physical + DEF Down synergy
+        if (currentSkill.type === "physical" && t.status?.defDown) {
+          synergies.push("💥+15%");
+        }
+        // Fire + Mark synergy
+        if (currentSkill.element === "fire" && t.status?.mark) {
+          synergies.push("🔥+20%");
+        }
+        // Tank + Burning synergy
+        if (currentHero.id === "tank" && t.status?.dot && t.id === "boss") {
+          synergies.push("🛡️+10%");
+        }
+      }
+      
+      const synergyText = synergies.length > 0 ? ` ${synergies.join(" ")}` : "";
+      btn.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span>${t.name}</span>
+          <span style="font-size: 0.85em; opacity: 0.8;">${t.hp}/${t.maxHp} (${hpPct}%)</span>
+        </div>
+        ${synergyText ? `<div style="margin-top: 4px; font-size: 0.8em; color: var(--secondary);">${synergyText}</div>` : ""}
+      `;
+      
       btn.addEventListener("click", () => {
         this.executeSkill(this.pendingSkill.hero, this.pendingSkill.skill, t);
         this.closeTargetSelect();
@@ -600,10 +755,18 @@ class Game {
     const guardCut = target.status?.guard?.amount || 0;
     const guardTeam = target.status?.guardTeam?.amount || 0;
     let synergyMulti = 1;
-    if (!isMagic && target.status?.defDown) synergyMulti += 0.15;
-    if (target.status?.mark && skill.element === "fire") synergyMulti += 0.2;
+    let synergyMsg = "";
+    if (!isMagic && target.status?.defDown) {
+      synergyMulti += 0.15;
+      synergyMsg = "💥 Physical Synergy!";
+    }
+    if (target.status?.mark && skill.element === "fire") {
+      synergyMulti += 0.2;
+      synergyMsg = "🔥 Fire+Mark Synergy!";
+    }
     if (source.id === "tank" && this.boss.status?.dot && target.id === "boss") {
       synergyMulti += 0.1;
+      synergyMsg = "🛡️ Tank Synergy!";
     }
     const enrageMultiplier =
       source.id === "boss" && this.isDragonEnraged() ? 2 : 1;
@@ -613,8 +776,31 @@ class Game {
         base * power * buffMulti * synergyMulti * (1 - guardCut - guardTeam)
       )
     );
-    const finalDamage = Math.max(8, Math.round(damage * enrageMultiplier));
+    let finalDamage = Math.max(8, Math.round(damage * enrageMultiplier));
+    
+    // Critical Hit System (10% chance for 1.5x damage, heroes only)
+    let isCrit = false;
+    if (source.id !== "boss" && Math.random() < 0.1) {
+      finalDamage = Math.round(finalDamage * 1.5);
+      isCrit = true;
+    }
+    
     target.hp = Math.max(0, target.hp - finalDamage);
+    
+    // Show floating damage text
+    const targetId = target.id === "boss" ? "boss" : target.id;
+    const floatType = isCrit ? "crit" : "damage";
+    this.showFloatingText(targetId, `-${finalDamage}`, floatType);
+    
+    // Log synergy if triggered
+    if (synergyMsg && synergyMulti > 1) {
+      this.log(synergyMsg, "buff");
+    }
+    
+    // Log critical hit
+    if (isCrit) {
+      this.log(`💥 CRITICAL HIT! (${finalDamage} damage)`, "damage");
+    }
     if (source.id !== "boss") {
       this.totalDamageByHero[source.id] =
         (this.totalDamageByHero[source.id] || 0) + finalDamage;
@@ -653,6 +839,10 @@ class Game {
       this.totalHealingByHero[source.id] =
         (this.totalHealingByHero[source.id] || 0) + amount;
     }
+    
+    // Show floating heal text
+    this.showFloatingText(target.id, `+${amount}`, "heal");
+    
     return amount;
   }
 
@@ -673,11 +863,12 @@ class Game {
           .replace("${user}", user.name)
           .replace("${skill}", skill.name)
           .replace("${target}", name)
-          .replace("${damage}", dmg)
+          .replace("${damage}", dmg),
+        "damage"
       );
       if (skill.execute && tgt.hp / tgt.maxHp < skill.execute) {
         tgt.hp = Math.max(0, tgt.hp - 40);
-        this.log(CONFIG.messages.executeBonus.replace("${skill}", skill.name));
+        this.log(CONFIG.messages.executeBonus.replace("${skill}", skill.name), "damage");
       }
     } else if (skill.type === "heal") {
       if (skill.target === "allies") {
@@ -688,7 +879,8 @@ class Game {
               CONFIG.messages.healed
                 .replace("${user}", user.name)
                 .replace("${target}", h.name)
-                .replace("${amount}", healed)
+                .replace("${amount}", healed),
+              "heal"
             );
           }
         });
@@ -698,7 +890,8 @@ class Game {
           CONFIG.messages.healed
             .replace("${user}", user.name)
             .replace("${target}", target.name)
-            .replace("${amount}", healed)
+            .replace("${amount}", healed),
+          "heal"
         );
       }
     } else if (skill.type === "buff") {
@@ -718,7 +911,8 @@ class Game {
       this.log(
         CONFIG.messages.buffAllies
           .replace("${user}", user.name)
-          .replace("${skill}", skill.name)
+          .replace("${skill}", skill.name),
+        "buff"
       );
     } else if (skill.type === "cleanse" && target) {
       target.status = {};
@@ -889,8 +1083,15 @@ class Game {
     this.resolveDot();
     this.updateUI();
     this.checkEnd();
-    if (this.state === "playing") this.advanceTurn();
-    else this.turnCount += 1;
+    
+    // Pick next skill for telegraph (predict what boss will do next)
+    if (this.state === "playing") {
+      this.bossNextSkill = this.chooseDragonSkill();
+      this.updateBossIntent();
+      this.advanceTurn();
+    } else {
+      this.turnCount += 1;
+    }
   }
 
   chooseDragonSkill() {
@@ -933,9 +1134,9 @@ class Game {
     if (newPhase !== this.bossPhase) {
       this.bossPhase = newPhase;
       if (newPhase === 2) {
-        this.log(CONFIG.messages.dragonPhase2);
+        this.log(CONFIG.messages.dragonPhase2, "phase");
       } else if (newPhase === 3) {
-        this.log(CONFIG.messages.dragonPhase3);
+        this.log(CONFIG.messages.dragonPhase3, "phase");
       }
     }
   }
@@ -992,19 +1193,28 @@ class Game {
       "bossMpText"
     ).textContent = `${this.boss.mp}/${this.boss.maxMp}`;
     const bossStatus = document.getElementById("bossStatus");
-    const bossLabels = [];
-    if (this.boss.status?.dot)
-      bossLabels.push(`Burning (${this.boss.status.dot.duration})`);
-    if (this.boss.status?.defDown)
-      bossLabels.push(`DEF↓ (${this.boss.status.defDown.duration})`);
-    if (this.boss.status?.defUp)
-      bossLabels.push(`DEF↑ (${this.boss.status.defUp.duration})`);
-    if (this.boss.status?.taunt)
-      bossLabels.push(`Provoked (${this.boss.status.taunt.duration})`);
-    if (this.boss.status?.mark)
-      bossLabels.push(`Marked (${this.boss.status.mark.duration})`);
-    bossStatus.style.display = bossLabels.length ? "inline-block" : "none";
-    bossStatus.textContent = bossLabels.join(" · ");
+    const bossIcons = [];
+    
+    const addBossIcon = (icon, label, duration, type) => {
+      bossIcons.push(`<span class="status-icon ${type}" title="${label}">${icon}<span class="duration">${duration}</span></span>`);
+    };
+    
+    // Boss debuffs (from heroes)
+    if (this.boss.status?.dot) addBossIcon("🔥", "Burning", this.boss.status.dot.duration, "debuff");
+    if (this.boss.status?.defDown) addBossIcon("🛡️↓", "DEF Down", this.boss.status.defDown.duration, "debuff");
+    if (this.boss.status?.mark) addBossIcon("🎯", "Marked", this.boss.status.mark.duration, "neutral");
+    if (this.boss.status?.taunt) addBossIcon("😤", "Provoked", this.boss.status.taunt.duration, "neutral");
+    
+    // Boss buffs (self)
+    if (this.boss.status?.defUp) addBossIcon("🛡️↑", "DEF Up", this.boss.status.defUp.duration, "buff");
+    if (this.boss.status?.atkUp) addBossIcon("⚔️↑", "ATK Up", this.boss.status.atkUp.duration, "buff");
+    
+    if (bossIcons.length > 0) {
+      bossStatus.innerHTML = `<div class="status-icons">${bossIcons.join("")}</div>`;
+      bossStatus.style.display = "block";
+    } else {
+      bossStatus.style.display = "none";
+    }
 
     this.heroes.forEach((h) => {
       const hpPct = (h.hp / h.maxHp) * 100;
@@ -1017,26 +1227,38 @@ class Game {
       document.getElementById(
         `${h.id}MpText`
       ).textContent = `${h.mp}/${h.maxMp}`;
-      const status = document.getElementById(`${h.id}Status`);
-      const format = (label, effect) => {
-        if (!effect) return null;
-        const duration =
-          typeof effect.duration === "number" ? ` (${effect.duration})` : "";
-        return `${label}${duration}`;
+      
+      // Enhanced status icons display
+      const statusEl = document.getElementById(`${h.id}Status`);
+      const statusIcons = [];
+      
+      const addIcon = (icon, label, duration, type) => {
+        if (duration !== undefined) {
+          statusIcons.push(`<span class="status-icon ${type}" title="${label}">${icon}<span class="duration">${duration}</span></span>`);
+        }
       };
-      const labels = [
-        format("ATK↑", h.status.atkUp),
-        format("MAG↑", h.status.magUp),
-        format("Guard", h.status.guard),
-        format("Shielded", h.status.guardTeam),
-        format("ATK↓", h.status.atkDown),
-        format("DEF↓", h.status.defDown),
-        format("SPD↑", h.status.spdUp),
-        format("SPD↓", h.status.spdDown),
-        format("Silenced", h.status.silence),
-      ].filter(Boolean);
-      status.textContent = labels.join(" · ");
-      status.style.display = labels.length ? "inline-block" : "none";
+      
+      // Buffs (green)
+      if (h.status.atkUp) addIcon("⚔️", "ATK Up", h.status.atkUp.duration, "buff");
+      if (h.status.magUp) addIcon("✨", "MAG Up", h.status.magUp.duration, "buff");
+      if (h.status.spdUp) addIcon("💨", "SPD Up", h.status.spdUp.duration, "buff");
+      if (h.status.guard) addIcon("🛡️", "Guard", h.status.guard.duration, "buff");
+      if (h.status.guardTeam) addIcon("🏰", "Shielded", h.status.guardTeam.duration, "buff");
+      
+      // Debuffs (red)
+      if (h.status.atkDown) addIcon("⚔️↓", "ATK Down", h.status.atkDown.duration, "debuff");
+      if (h.status.defDown) addIcon("🛡️↓", "DEF Down", h.status.defDown.duration, "debuff");
+      if (h.status.spdDown) addIcon("🐌", "SPD Down", h.status.spdDown.duration, "debuff");
+      if (h.status.silence) addIcon("🔇", "Silenced", h.status.silence.duration, "debuff");
+      if (h.status.dot) addIcon("🔥", "Burning", h.status.dot.duration, "debuff");
+      
+      if (statusIcons.length > 0) {
+        statusEl.innerHTML = `<div class="status-icons">${statusIcons.join("")}</div>`;
+        statusEl.style.display = "block";
+      } else {
+        statusEl.style.display = "none";
+      }
+      
       const limitEl = document.getElementById(`${h.id}Limit`);
       if (limitEl) limitEl.textContent = `Limit: ${Math.round(h.limit)}%`;
     });
