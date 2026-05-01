@@ -16,6 +16,18 @@
           </p>
           <div class="settings-card">
             <div class="setting-group">
+              <div class="setting-label">Mode</div>
+              <div class="setting-options" id="gameModeOptions">
+                <button class="option-button active" data-mode="skirmish">
+                  Skirmish
+                </button>
+                <button class="option-button" data-mode="campaign">
+                  Campaign
+                </button>
+              </div>
+            </div>
+            <div class="setting-group">
+              <div class="setting-label">Difficulty</div>
               <div class="setting-options" id="difficultyOptions">
                 <button class="option-button" data-difficulty="easy">
                   Easy
@@ -27,6 +39,14 @@
                   Hard
                 </button>
               </div>
+            </div>
+            <div class="setting-group">
+              <div class="setting-label">Challenge</div>
+              <div class="setting-options" id="challengeOptions"></div>
+            </div>
+            <div class="setting-group">
+              <div class="setting-label">Blessing</div>
+              <div class="blessing-options" id="blessingOptions"></div>
             </div>
             <div
               class="best-run"
@@ -77,7 +97,7 @@
                       <img src="gif/dragon.gif" alt="Dragon" />
                     </div>
                     <div class="boss-meta">
-                      <h2>Naga Kampar</h2>
+                      <h2 id="bossName">Naga Kampar</h2>
                       <div class="meter">
                         <div class="meter-label">
                           <span>HP</span>
@@ -96,6 +116,19 @@
                           <div class="meter-fill mp-fill" id="bossMpBar"></div>
                         </div>
                       </div>
+                      <div class="meter stagger-meter">
+                        <div class="meter-label">
+                          <span>BREAK</span>
+                          <span id="bossStaggerText">--</span>
+                        </div>
+                        <div class="meter-bar">
+                          <div
+                            class="meter-fill stagger-fill"
+                            id="bossStaggerBar"
+                          ></div>
+                        </div>
+                      </div>
+                      <div class="boss-parts" id="bossParts"></div>
                       <div
                         class="status-tag"
                         id="bossStatus"

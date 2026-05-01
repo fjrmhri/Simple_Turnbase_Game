@@ -8,13 +8,168 @@ window.GAME_CONFIG = {
     GROUP_HEAL_RATIO: 0.24,
     LIMIT_GAIN_TAKEN: 10,
     LIMIT_GAIN_DEALT: 5,
+    STAGGER_MAX: 100,
+    STAGGER_DECAY_PER_BOSS_TURN: 8,
+    STAGGERED_TURNS: 1,
+    STAGGERED_DAMAGE_BONUS: 0.25,
+    COUNTER_STAGGER_BONUS: 14,
+    WINDUP_INTERRUPT_STAGGER: 25,
   },
 
   difficulties: {
-    easy: { bossHp: 0.8, bossAtk: 0.9, heroHp: 1.2 },
-    normal: { bossHp: 1.0, bossAtk: 1.0, heroHp: 1.0 },
-    hard: { bossHp: 1.3, bossAtk: 1.15, heroHp: 0.95 },
+    easy: { bossHp: 0.8, bossAtk: 0.9, heroHp: 1.2, staggerTaken: 1.15 },
+    normal: { bossHp: 1.0, bossAtk: 1.0, heroHp: 1.0, staggerTaken: 1.0 },
+    hard: { bossHp: 1.3, bossAtk: 1.15, heroHp: 0.95, staggerTaken: 0.9 },
   },
+
+  blessings: [
+    {
+      id: "breakerCharm",
+      name: "Breaker Charm",
+      description: "+5 break damage and +15% part damage.",
+      effects: { staggerBonus: 5, partDamageBonus: 0.15 },
+    },
+    {
+      id: "focusShard",
+      name: "Focus Shard",
+      description: "Heroes start with 20% limit and gain +2 MP each turn.",
+      effects: { startLimit: 20, mpRegenBonus: 2 },
+    },
+    {
+      id: "vanguardOath",
+      name: "Vanguard Oath",
+      description: "+8% max HP and team guard for the first 2 turns.",
+      effects: { maxHpBonus: 0.08, startGuardTeam: 0.12, guardDuration: 2 },
+    },
+  ],
+
+  challenges: [
+    {
+      id: "none",
+      name: "Standard",
+      description: "No extra modifier.",
+      effects: {},
+    },
+    {
+      id: "timeAttack",
+      name: "Time Attack",
+      description: "Win before turn 180 in Skirmish or 500 in Campaign.",
+      effects: { turnLimit: 180, campaignTurnLimit: 500 },
+    },
+    {
+      id: "scorchedSky",
+      name: "Scorched Sky",
+      description: "Boss damage +12%, hero HP -4%.",
+      effects: { bossAtkBonus: 0.12, heroHpBonus: -0.04 },
+    },
+    {
+      id: "scarcity",
+      name: "Scarcity",
+      description: "Fewer items and lower MP recovery.",
+      effects: { itemCountPenalty: 1, mpRegenPenalty: 1 },
+    },
+  ],
+
+  campaign: {
+    recoveryHpRatio: 0.35,
+    recoveryMpRatio: 0.3,
+    encounters: [
+      {
+        id: "outerRidge",
+        name: "Ridge Wyrm",
+        bossHp: 0.55,
+        bossAtk: 0.85,
+        partIntegrity: 0.68,
+        message: "Encounter 1/3: Ridge Wyrm blocks the ascent.",
+      },
+      {
+        id: "stormPeak",
+        name: "Storm Naga",
+        bossHp: 0.78,
+        bossAtk: 1,
+        partIntegrity: 0.86,
+        message: "Encounter 2/3: Storm Naga guards the crater.",
+      },
+      {
+        id: "kamparHeart",
+        name: "Naga Kampar",
+        bossHp: 1,
+        bossAtk: 1.08,
+        partIntegrity: 1,
+        message: "Encounter 3/3: Naga Kampar reveals its true strength.",
+      },
+    ],
+  },
+
+  consumables: [
+    {
+      id: "potion",
+      name: "Potion",
+      count: 2,
+      target: "ally",
+      type: "heal",
+      healRatio: 0.35,
+      description: "Restore 35% HP to one hero.",
+    },
+    {
+      id: "ether",
+      name: "Ether",
+      count: 1,
+      target: "ally",
+      type: "mp",
+      amount: 35,
+      description: "Restore 35 MP to one hero.",
+    },
+    {
+      id: "focusCrystal",
+      name: "Focus Crystal",
+      count: 1,
+      target: "ally",
+      type: "limit",
+      amount: 35,
+      description: "Grant 35% limit to one hero.",
+    },
+    {
+      id: "smokeBomb",
+      name: "Smoke Bomb",
+      count: 1,
+      target: "allies",
+      type: "guardTeam",
+      amount: 0.22,
+      duration: 1,
+      description: "Reduce team damage for 1 turn.",
+    },
+  ],
+
+  comboChains: [
+    {
+      id: "sunderStrike",
+      name: "Sunder Strike",
+      sequence: ["armorBreak", "powerSlash"],
+      damageBonus: 0.2,
+      staggerBonus: 12,
+    },
+    {
+      id: "markedFlame",
+      name: "Marked Flame",
+      sequence: ["markPrey", "firestorm"],
+      damageBonus: 0.16,
+      partDamageBonus: 0.12,
+    },
+    {
+      id: "bulwarkCrash",
+      name: "Bulwark Crash",
+      sequence: ["shieldWall", "bash"],
+      staggerBonus: 18,
+    },
+    {
+      id: "meteorSignal",
+      name: "Meteor Signal",
+      sequence: ["markPrey", "meteorFlare"],
+      damageBonus: 0.24,
+      staggerBonus: 16,
+    },
+  ],
 
   storyScenes: [
     {
@@ -62,6 +217,7 @@ window.GAME_CONFIG = {
           target: "enemy",
           type: "physical",
           power: 0.9,
+          stagger: 8,
           description: "Serangan andalan ketika MP rendah.",
         },
         {
@@ -72,6 +228,7 @@ window.GAME_CONFIG = {
           target: "enemy",
           type: "physical",
           power: 1.4,
+          stagger: 18,
           description: "Pukulan fisik berat yang memberikan damage kuat.",
         },
         {
@@ -82,7 +239,13 @@ window.GAME_CONFIG = {
           target: "enemy",
           type: "physical",
           power: 1.1,
+          stagger: 22,
           debuff: { defDown: 0.2, duration: 2 },
+          counterplay: {
+            patterns: ["self", "aoe"],
+            staggerBonus: 18,
+            interruptWindup: true,
+          },
           description:
             "Serangan yang mengurangi pertahanan naga selama 2 giliran.",
         },
@@ -105,6 +268,7 @@ window.GAME_CONFIG = {
           target: "enemy",
           type: "physical",
           power: 0.9,
+          stagger: 10,
           debuff: { mark: true, duration: 3 },
           description:
             "Menandai naga, membuatnya rentan terhadap serangan sihir api.",
@@ -116,8 +280,14 @@ window.GAME_CONFIG = {
           target: "enemy",
           type: "physical",
           power: 2.2,
+          stagger: 35,
           requiresLimit: 100,
           cooldown: 0,
+          counterplay: {
+            patterns: ["single", "single-splash", "aoe", "self", "berserk"],
+            staggerBonus: 20,
+            interruptWindup: true,
+          },
           description: "Limit: lompatan heroik yang membelah sisik naga.",
         },
       ],
@@ -142,6 +312,7 @@ window.GAME_CONFIG = {
           target: "enemy",
           type: "magic",
           power: 1.3,
+          stagger: 10,
           description: "Tembakan energi murni yang presisi.",
         },
         {
@@ -152,6 +323,7 @@ window.GAME_CONFIG = {
           target: "all-enemies",
           type: "magic",
           power: 1.1,
+          stagger: 14,
           element: "fire",
           description:
             "Badai api AoE yang membakar naga dan meninggalkan bara menyala.",
@@ -175,6 +347,7 @@ window.GAME_CONFIG = {
           target: "enemy",
           type: "magic",
           power: 0.8,
+          stagger: 6,
           description: "Percikan ringan untuk menghemat mana.",
         },
         {
@@ -197,6 +370,7 @@ window.GAME_CONFIG = {
           type: "magic",
           power: 2.6,
           element: "fire",
+          stagger: 32,
           requiresLimit: 100,
           description:
             "Limit: memanggil bintang berapi yang merobek sisik obsidian.",
@@ -251,6 +425,7 @@ window.GAME_CONFIG = {
           target: "enemy",
           type: "magic",
           power: 0.6,
+          stagger: 8,
           description: "Serangan lembut sihir cahaya.",
         },
         {
@@ -287,8 +462,13 @@ window.GAME_CONFIG = {
           target: "enemy",
           type: "physical",
           power: 1.0,
+          stagger: 24,
           description: "Hantaman perisai yang bisa menggoyahkan naga.",
           debuff: { dmgDown: 0.15, spdDown: 0.2, duration: 2 },
+          counterplay: {
+            patterns: ["single", "single-splash", "berserk"],
+            staggerBonus: 14,
+          },
         },
         {
           id: "guard",
@@ -298,6 +478,10 @@ window.GAME_CONFIG = {
           target: "self",
           type: "buff",
           buff: { guard: 0.4, duration: 1 },
+          counterplay: {
+            patterns: ["single"],
+            guardBoost: 0.15,
+          },
           description:
             "Bersiap untuk dampak, mengurangi damage yang masuk untuk giliran ini.",
         },
@@ -309,6 +493,10 @@ window.GAME_CONFIG = {
           target: "self",
           type: "taunt",
           duration: 2,
+          counterplay: {
+            patterns: ["single", "single-splash"],
+            forceTaunt: true,
+          },
           description: "Menarik fokus naga selama 2 giliran.",
         },
         {
@@ -319,6 +507,10 @@ window.GAME_CONFIG = {
           target: "allies",
           type: "buff",
           buff: { guardTeam: 0.2, duration: 2 },
+          counterplay: {
+            patterns: ["aoe", "single-splash"],
+            guardBoost: 0.1,
+          },
           description:
             "Mengangkat perisai untuk seluruh tim, mengurangi damage selama 2 giliran.",
         },
@@ -331,6 +523,10 @@ window.GAME_CONFIG = {
           type: "buff",
           buff: { guardTeam: 0.35, duration: 2 },
           requiresLimit: 100,
+          counterplay: {
+            patterns: ["aoe", "single-splash"],
+            guardBoost: 0.1,
+          },
           description:
             "Limit: membentuk tembok tak tertembus untuk melindungi semua orang.",
         },
@@ -347,12 +543,50 @@ window.GAME_CONFIG = {
   boss: {
     id: "boss",
     name: "Naga Kampar",
-    maxHp: 2200,
+    maxHp: 1900,
     maxMp: 200,
     atk: 42,
     def: 24,
     mag: 36,
     spd: 11,
+    parts: [
+      {
+        id: "head",
+        name: "Head",
+        maxIntegrity: 150,
+        disabledSkillIds: ["roaringSilence"],
+        breakStagger: 18,
+        effectLabel: "Disables Silence",
+        breakMessage: "Kepala naga retak. Roaring Silence tidak bisa dipakai.",
+      },
+      {
+        id: "wings",
+        name: "Wings",
+        maxIntegrity: 170,
+        disabledSkillIds: ["cinderWave"],
+        breakStagger: 20,
+        effectLabel: "Disables Cinder Wave",
+        breakMessage: "Sayap naga patah. Cinder Wave kehilangan daya.",
+      },
+      {
+        id: "claws",
+        name: "Claws",
+        maxIntegrity: 160,
+        disabledSkillIds: ["obliterate"],
+        breakStagger: 22,
+        effectLabel: "Disables Obliterate",
+        breakMessage: "Cakar naga hancur. Obliterate tidak bisa dipakai.",
+      },
+      {
+        id: "tail",
+        name: "Tail",
+        maxIntegrity: 140,
+        disabledSkillIds: ["fieryRend"],
+        breakStagger: 16,
+        effectLabel: "Disables Fiery Rend",
+        breakMessage: "Ekor naga terputus. Fiery Rend tidak bisa dipakai.",
+      },
+    ],
     skills: [
       {
         id: "crushingClaw",
@@ -427,6 +661,9 @@ window.GAME_CONFIG = {
       "Tip: Api terus menyala setelah aksi. Jaga agar api tetap hidup untuk damage berkelanjutan.",
     tipGuard:
       "Tip: Guard dan Shield Wall menahan pukulan berat; gunakan sebelum serangan besar.",
+    blessingChosen: "Blessing aktif: ${blessingName}.",
+    challengeActive: "Challenge aktif: ${challengeName}.",
+    campaignEncounter: "${encounterName}",
 
     dragonActing: "Naga sedang bergerak...",
     heroTurn: "${heroName} giliran",
@@ -465,6 +702,29 @@ window.GAME_CONFIG = {
       "Naga menjadi berserk, bertarung dengan kegilaan yang ceroboh!",
     dragonEnraged: "${bossName} marah! Damagenya melonjak.",
     dragonProvoked: "Naga diprovokasi dan fokus pada ${target}!",
+    bossStaggered:
+      "${bossName} kehilangan keseimbangan! Aksi berikutnya batal dan damage masuk meningkat.",
+    bossStaggerSkip: "${bossName} masih terhuyung dan gagal bertindak.",
+    bossIntentCanceled:
+      "${bossName} kehilangan momentum dan gagal menyelesaikan serangannya.",
+    bossIntentCountered: "${user} membaca intent naga dan menyiapkan counter.",
+    bossWindupInterrupted:
+      "${user} memecah konsentrasi naga. Serangan charge batal.",
+    bossHardenCountered:
+      "Sisik naga sudah retak. Scale Harden gagal terbentuk.",
+    bossTauntLocked: "${user} mengunci fokus naga pada dirinya.",
+    bossShieldPrepared:
+      "${user} menyiapkan pertahanan tepat sebelum serangan besar.",
+    bossPartBroken: "${partName} hancur.",
+    bossPartInterrupted:
+      "${partName} hancur dan intent naga kehilangan fungsi.",
+    comboTriggered: "Combo aktif: ${comboName}.",
+    itemUsed: "${user} menggunakan ${itemName} pada ${target}.",
+    itemAllies: "${user} menggunakan ${itemName} untuk seluruh tim.",
+    challengeFailed: "Challenge gagal. Waktu habis.",
+    encounterClear:
+      "${encounterName} runtuh. Tim memulihkan sebagian kekuatan sebelum lanjut.",
+    campaignVictory: "Semua penjaga Kampar telah dikalahkan.",
 
     victory: "Naga runtuh di bawah taktikmu.",
     defeat: "Timmu jatuh oleh amarah naga.",

@@ -89,7 +89,7 @@ body {
   border: 1px solid var(--line);
   box-shadow: var(--shadow);
   text-align: center;
-  width: min(420px, 88vw);
+  width: min(560px, 92vw);
 }
 
 .start-panel h1 {
@@ -127,6 +127,29 @@ body {
   flex-wrap: wrap;
   justify-content: center;
   align-items: center;
+}
+
+.blessing-options {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.blessing-button {
+  text-align: left;
+  width: 100%;
+}
+
+.blessing-name {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.blessing-desc {
+  color: var(--muted);
+  font-size: 0.78rem;
+  margin-top: 3px;
+  line-height: 1.25;
 }
 
 .best-run {
@@ -436,6 +459,58 @@ body {
 
 .mp-fill {
   background: var(--mp);
+}
+
+.stagger-meter {
+  border-color: rgba(255, 200, 87, 0.14);
+}
+
+.stagger-fill {
+  background: linear-gradient(90deg, #ffc857, #ff6b6b);
+}
+
+.boss-parts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.boss-part {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 5px;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.boss-part.broken {
+  opacity: 0.48;
+  border-color: rgba(255, 107, 107, 0.22);
+}
+
+.part-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.part-bar {
+  height: 6px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(8, 12, 26, 0.7);
+}
+
+.part-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #74f0ed, #ffc857);
+}
+
+.boss-part.broken .part-fill {
+  background: var(--accent);
 }
 
 .status-tag {
@@ -790,6 +865,15 @@ body {
 .skill-button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+.item-button {
+  border-color: rgba(255, 200, 87, 0.42);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 200, 87, 0.18),
+    rgba(255, 200, 87, 0.08)
+  );
 }
 
 .skill-meta {
